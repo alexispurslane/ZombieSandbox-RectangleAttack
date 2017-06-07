@@ -371,16 +371,27 @@ EnemyHandler.prototype.enterFrame = function () {
             enemy.vY = -this.jumpHeight;
             enemy.willJump = false;
         }
-        if (player.x < enemy.x) {
+        if (enemy.boredLevel > 10) { enemy.acknowledgeBored = true; }
+        if (player.x < enemy.x || (enemy.acknowledgeBored &&
+                                   player.x > enemy.x &&
+                                   enemy.boredLevel > 0)) {
+            if (enemy.lastDir == 1) { enemy.boredLevel += 2; }
             enemy.vX -= enemy.accel;
+            enemy.lastDir = -1;
             if (enemy.vX < -enemy.speed) {
                 enemy.vX = -enemy.speed;
             }
-        } else {
+            enemy.boredLevel--;
+        } else if (player.x > enemy.x || (enemy.acknowledgeBored &&
+                                          player.x < enemy.x &&
+                                          enemy.boredLevel > 0)) {
+            if (enemy.lastDir == -1) { enemy.boredLevel += 2; }
             enemy.vX += enemy.accel;
+            enemy.lastDir = 1;
             if (enemy.vX > enemy.speed) {
                 enemy.vX = enemy.speed;
             }
+            enemy.boredLevel--;
         }
         newX = enemy.x + enemy.vX;
         startX = Math.max((newX - enemy.width / 2) / blockSize | 0, 0);
@@ -407,6 +418,7 @@ EnemyHandler.prototype.enterFrame = function () {
                             newX = i * blockSize + blockSize + enemy.width / 2;
                         }
                         enemy.vX = 0;
+                        enemy.boredLevel += Math.round(Math.random()*10);
                         enemy.willJump = true;
                     }
                 }
@@ -611,15 +623,15 @@ function Game() {
     grd.addColorStop(1,"white");
     var blocks = {
         bedrock: '#363532',
-        dirt: '#AE9A73',
+        fire: 'rgba(255, 0, 0, 0.7)',
         stone: '#807E79',
         iron: grd,
         power_iron: 'rgba(255, 0, 0, 0.7)',
         wood: '#9F763B',
-        fire: 'rgba(255, 0, 0, 0.7)',
+        platform: '#9F763B',
+        dirt: '#AE9A73',
         water: 'rgba(0,72,151,0.5)',
-        cloud: 'rgba(255,255,255,0.7)',
-        platform: '#9F763B'
+        cloud: 'rgba(255,255,255,0.7)'
     };
     this.blockInt = {};
     this.blockColor = [];
@@ -697,7 +709,7 @@ function PlayerHandler(game) {
     this.inventory = {};
     this.inventory[game.blockInt.platform] = 300;
     this.inventory[game.blockInt.wood] = 300;
-    Object.values(game.blockInt).forEach((int) => this.inventory[int] = this.inventory[int] || 30);
+    Object.values(game.blockInt).forEach((int) => this.inventory[int] = this.inventory[int] || 15);
     this.fallSpeed = 8.0;
     this.width = 40;
     this.height = 50;
@@ -752,13 +764,13 @@ function PlayerHandler(game) {
         destroy: []
     }, {
         name: 'Highyeild Bomb',
-        reload: 90,
+        reload: 150,
         count: 1,
         speed: 4.5,
         hp: 900,
-        modY: 0.15,
+        modY: 1,
         explode: 3,
-        spread: 0.3,
+        spread: 1,
         damage: 20,
         destroy: [game.blockInt.wood, game.blockInt.dirt, game.blockInt.stone]
     }, {
@@ -823,6 +835,10 @@ PlayerHandler.prototype.init = function (game) {
     this.canJump = 0;
     this.inWater = false;
     this.spaceDown = false;
+    this.blockDifficulty = {};
+    let bi = Object.values(game.blockInt);
+    bi.forEach((k,i) => this.blockDifficulty[k] = (bi.length-i)*5);
+    console.log(this.blockDifficulty);
     this.hp = this.startHp;
     this.kills = 0;
     this.action = 0;
@@ -845,7 +861,7 @@ PlayerHandler.prototype.enterFrame = function () {
             this.hp = this.startHp;
         }
     }
-    if (this.inWater && this.time%5 == 0) { this.hp -= this.regen*2; }
+    if (this.underWater) { this.hp -= 0.02; }
     if (this.canJump < 1 && controlHandler.space && this.spaceDown == false) {
         this.vY = -this.jumpHeight;
         this.spaceDown = true;
@@ -880,6 +896,7 @@ PlayerHandler.prototype.enterFrame = function () {
                         1);
     var endY = Math.min((this.y + height * 0.5) / blockSize | 0, this.levelHeight -
                         1);
+    this.underWater = true;
     for (i = startX; i <= endX; i++) {
         for (j = startY; j <= endY; j++) {
             if (gridList[i][j] !== false && gridList[i][j] != blockInt.cloud &&
@@ -900,6 +917,8 @@ PlayerHandler.prototype.enterFrame = function () {
                     this.vX = 0;
                 }
             }
+            this.underWater = this.underWater &&
+                (gridList[i][j] != false && gridList[i][j] != blockInt.cloud);
         }
     }
     this.x = newX;
@@ -1004,10 +1023,12 @@ PlayerHandler.prototype.enterFrame = function () {
                             let block = gridList[X][Y];
                             gridList[X][Y] = false;
                             this.inventory[block]++;
+                            this.reload = this.blockDifficulty[block];
                         }
+                    } else {
+                        this.reload = this.actionObject.reload;
                     }
                 }
-                this.reload = this.actionObject.reload;
             }
         } else {
             this.canBuild = false;
@@ -1325,7 +1346,7 @@ function ShotHandler(game) {
         name: 'Explode3',
         count: 90,
         speed: 20,
-        hp: 50,
+        hp: 60,
         modY: 0,
         explode: 0,
         spread: 0,
