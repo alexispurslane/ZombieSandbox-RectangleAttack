@@ -56,8 +56,8 @@ window.onload = function () {
 class Game {
     constructor() {
         this.blockSize = 32;
-        this.levelWidth = Math.random()*500+500;
-        this.levelHeight = Math.random()*120+120;
+        this.levelWidth = 900;
+        this.levelHeight = 120;
         this.horizon = this.levelHeight / 2 | 0;
 
         this.fontFamily = 'Arial,sans-serif';
@@ -101,8 +101,8 @@ class Game {
 
         this.handlers = ['control', 'render',
                          'player', 'enemy',
-                         'shot', 'dust',
-                         'blood', 'view'];
+                         'dust', 'blood',
+                         'shot', 'view'];
         this.handlers.forEach((handler) => {
             let handlerName = handler + 'Handler';
             let className = handlerName.charAt(0)
@@ -117,8 +117,8 @@ class Game {
     startGame() {
         this.gridHandler.init(this);
         if (!load(this)) {
-            this.levelWidth = Math.random()*500+500;
-            this.levelHeight = Math.random()*120+120;
+            this.levelWidth = 900;
+            this.levelHeight = 120;
             this.horizon = this.levelHeight / 2 | 0;
             createLevel(this);
         }
@@ -460,31 +460,36 @@ class RenderHandler {
         Y = Math.round(pY + offsetY - player.height / 2);
         context.fillStyle = '#333333';
         context.fillRect(X, Y, player.width, player.height);
-        context.fillStyle = '#774444';
 
-        // Particles
+        //Enemies
+        context.fillStyle = '#774444';
         this.enemyHandler.list.forEach((obj) => {
             context.fillRect(Math.round(obj.x + offsetX - obj.width * 0.5),
                              Math.round(obj.y + offsetY - obj.height * 0.5), obj.width,
                              obj.height);
         });
+
+        // Particles
         context.fillStyle = '#333333';
         this.shotHandler.list.forEach((obj) => {
             dist = this.shotHandler.size;
-            context.fillRect(Math.round(obj.x + offsetX - dist / 2), Math.round(
-                obj.y + offsetY - dist / 2), dist, dist);
+            context.fillRect(Math.round(obj.x + offsetX - dist / 2),
+                             Math.round(obj.y + offsetY - dist / 2),
+                             dist, dist);
         });
         context.fillStyle = '#555555';
         this.dustHandler.list.forEach((obj) => {
             dist = this.dustHandler.size * (obj.hp / this.dustHandler.startHp);
-            context.fillRect(Math.round(obj.x + offsetX - dist * 0.5), Math.round(
-                obj.y + offsetY - dist * 0.5), dist, dist);
+            context.fillRect(Math.round(obj.x + offsetX - dist * 0.5),
+                             Math.round(obj.y + offsetY - dist * 0.5),
+                             dist, dist);
         });
         context.fillStyle = '#32BF32';
         this.bloodHandler.list.forEach((obj) => {
             dist = this.bloodHandler.size * (obj.hp / this.bloodHandler.startHp);
-            context.fillRect(Math.round(obj.x + offsetX - dist * 0.5), Math.round(
-                obj.y + offsetY - dist * 0.5), dist, dist);
+            context.fillRect(Math.round(obj.x + offsetX - dist * 0.5),
+                             Math.round(obj.y + offsetY - dist * 0.5),
+                             dist, dist);
         });
 
         // Grass, stones
@@ -625,15 +630,15 @@ class PlayerHandler {
             damage: 1,
             destroy: [game.blockInt.dirt]
         }, {
-            name: 'Sniper Rifle',
+            name: 'Rifle',
             reload: 50,
             count: 1,
-            speed: 75,
-            hp: 90,
-            modY: 0,
+            speed: 40,
+            hp: 80,
+            modY: 0.01,
             explode: 0,
-            spread: 0,
-            damage: 10,
+            spread: 0.5,
+            damage: 5,
             destroy: []
         }, {
             name: 'Grenade',
@@ -975,7 +980,7 @@ window.PlayerHandler = PlayerHandler;
 class EnemyHandler {
     constructor(game) {
         this.startAccel = 0.01;
-        this.startSpeed = 0.5;
+        this.startSpeed = 0.25;
         this.fallSpeed = 4.0;
         this.startWidth = 36;
         this.startHeight = 46;
@@ -1023,7 +1028,7 @@ class EnemyHandler {
                 enemy.vY = -this.jumpHeight;
                 enemy.willJump = false;
             }
-            let daytime = this.game.time < this.game.dayLength;
+            let daytime = i >= 0.25 && i <= 0.75;
             if ((player.x < enemy.x && !daytime) || (player.x > enemy.x && daytime)) {
                 enemy.vX -= enemy.accel;
                 if (enemy.vX > enemy.speed) {
@@ -1371,7 +1376,8 @@ class DustHandler extends ParticleHandler {
                 continue;
             }
         }
-    };
+    }
+
     customParticle(dust, count) {
         dust.hp = this.startHp;
         return dust;
@@ -1383,8 +1389,9 @@ class BloodHandler extends ParticleHandler {
     constructor(game) {
         super(game);
         this.size = 8;
-        this.startHp = 30;
+        this.startHp = 60;
     }
+
     enterFrame() {
         let blockSize = this.blockSize;
         let blockInt = this.blockInt;
@@ -1416,6 +1423,7 @@ class BloodHandler extends ParticleHandler {
             }
         }
     }
+
     customParticle(blood, count) {
         blood.hp = this.startHp;
         return blood;
@@ -1465,7 +1473,7 @@ class ViewHandler {
 window.ViewHandler = ViewHandler;
 
 function createLevel(game) {
-    let flatness = 0.85;
+    let flatness = Math.random()+0.25;
     let levelWidth = game.levelWidth;
     let levelHeight = game.levelHeight;
     let blockSize = game.blockSize;
@@ -1498,12 +1506,12 @@ function createLevel(game) {
         list[x][0] = blockInt.bedrock;
         list[x][levelHeight - 1] = blockInt.bedrock;
 
-        // if (height > horizon) {
-        //     for (let y = horizon; y < height; y++) {
-        //         list[x][y] = blockInt.water;
-        //         waterList.push({ x, y });
-        //     }
-        // }
+        if (height > horizon) {
+            for (let y = horizon; y < height; y++) {
+                list[x][y] = blockInt.water;
+                waterList.push({ x, y });
+            }
+        }
 
         for (let y = height; y < levelHeight - 1; y++) {
             if (y > height + Math.random() * 8 + 4) {
