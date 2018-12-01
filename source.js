@@ -111,6 +111,10 @@ ControlHandler.prototype.keyDownEvent = function (e) {
         this.d = true;
     } else if (e.keyCode == 83) {
         this.s = true;
+    } else if (e.keyCode == 87) {
+        this.space = true;
+    } else if (e.keyCode == 88) {
+        this.mouseLeft = true;
     } else if ((e.keyCode >= 48 || e.keyCode <= 57)
                && this.game.state == 'game') {
         this.playerHandler.hotKey(e.keyCode);
@@ -128,6 +132,10 @@ ControlHandler.prototype.keyUpEvent = function (e) {
         this.a = false;
     } else if (e.keyCode == 68) {
         this.d = false;
+    } else if (e.keyCode == 87) {
+        this.space = false;
+    } else if (e.keyCode == 88) {
+        this.mouseLeft = false;
     } else if (e.keyCode == 83) {
         this.s = false;
     } else if (e.keyCode == 40) {
