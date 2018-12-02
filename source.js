@@ -267,6 +267,17 @@ function createLevel(game) {
             }
         }
     }
+
+    for (let x = 0; x < levelWidth / 50; x++) {
+        var randX = Math.random() * (levelWidth - 20) + 20 | 0;
+        console.log("tree at: ", randX);
+        var y = list[randX].length;
+        var height = Math.random() * 10 + 5 | 0;
+        for (; y < height; y++) {
+            list[randX][y] = blockInt.wood;
+        }
+        list[randX][y] = blockInt.leaves;
+    }
 }
 
 function DustHandler(game) {
@@ -518,10 +529,11 @@ EnemyHandler.prototype.create = function () {
     enemy.vX = 0;
     enemy.vY = 10;
     enemy.hp = this.startHp;
-    enemy.accel = this.startAccel;
-    enemy.speed = this.startSpeed;
-    enemy.width = this.startWidth;
-    enemy.height = this.startHeight;
+    enemy.level = (this.playerHandler.kills / 50) | 0;
+    enemy.accel = this.startAccel * enemy.level;
+    enemy.speed = this.startSpeed * enemy.level;
+    enemy.width = this.startWidth + enemy.level;
+    enemy.height = this.startHeight + enemy.level;
     enemy.canJump = 0;
     enemy.inWater = false;
     this.list[this.list.length] = enemy;
@@ -615,7 +627,7 @@ GridHandler.prototype.enterFrame = function () {
 function Game() {
     this.blockSize = 32;
     this.levelWidth = 900;
-    this.levelHeight = 120;
+    this.levelHeight = 100;
     this.horizon = this.levelHeight / 2 | 0;
 
     this.titleFontFamily = 'Impact,sans-serif';
@@ -624,7 +636,7 @@ function Game() {
     this.time = 0;
     this.days = 0;
     this.timeIncrement = 0;
-    this.dayLength = 490 * 60;
+    this.dayLength = 470 * 60;
 
     this.canvas = document.getElementById('canvas');
     this.context = this.canvas.getContext('2d');
@@ -642,7 +654,8 @@ function Game() {
         platform: '#9F763B',
         dirt: '#AE9A73',
         water: 'rgba(0,72,151,0.5)',
-        cloud: 'rgba(255,255,255,0.7)'
+        cloud: 'rgba(255,255,255,0.7)',
+        leaves: 'rgba(100, 200, 50,0.8)',
     };
     this.blockInt = {};
     this.blockColor = [];
@@ -1246,12 +1259,19 @@ RenderHandler.prototype.enterFrame = function () {
                                   '#E2222C',
                                   '#E2224C'];
                     context.rect(X, Y, blockSize, blockSize);
+                    context.fillStyle = colors[Math.round(Math.random()*colors.length)-1];
+                    context.shadowColor = Math.round(Math.random()*colors.length-1);
                     context.shadowBlur = Math.round(Math.random()*70+3);
                     context.shadowOffsetX = Math.round(Math.random()*15);
                     context.shadowOffsetY = Math.round(Math.random()*15);
-                    context.shadowColor = Math.round(Math.random()*colors.length-1);
-                    context.fillStyle = colors[Math.round(Math.random()*colors.length)-1];
                     context.fill();
+                } else if (obj == blockInt.leaves) {
+                    context.fillStyle = blockColor[obj];
+                    ctx.beginPath();
+                    ctx.moveTo(X-blockSize*2, Y);
+                    ctx.lineTo(X, Y+blockSize*5);
+                    ctx.lineTo(X+blockSize*2, Y);
+                    ctx.fill();
                 } else {
                     context.fillStyle = blockColor[obj];
                     context.fillRect(X, Y, blockSize, blockSize);
@@ -1390,7 +1410,7 @@ RenderHandler.prototype.enterFrame = function () {
     context.textAlign = 'right';
     player.actions.forEach((x,i) => {
         if (x.requiredKills <= player.kills) {
-            context.font = 'bold 16px/1 Impact';
+            context.font = 'bold 20px/1 Helvetica';
             if (i == player.action) {
                 context.fillStyle = 'orange';
             } else {
@@ -1398,7 +1418,7 @@ RenderHandler.prototype.enterFrame = function () {
             }
             let str = x.name;
             if (x.type) { str += " x"+player.inventory[x.type]; }
-            context.fillText(str, this.canvas.width-5, (i+1)*16+33);
+            context.fillText(str, this.canvas.width-5, (i+1)*20+33);
         }
     });
 };
