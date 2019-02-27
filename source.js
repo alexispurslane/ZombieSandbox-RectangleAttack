@@ -1,5 +1,6 @@
 window.onload = function () {
-    new Game();
+    g = new Game();
+    g.startGame();
 };
 
 // TODO
@@ -187,6 +188,7 @@ function createLevel(game) {
     var waterList = game.gridHandler.waterList;
     var horizon = game.horizon;
     var height = horizon;
+    var heights = [];
 
     for (let x = 0; x < levelWidth/20; x++) {
         let randX = Math.random() * (levelWidth - 20) + 10 | 0;
@@ -219,18 +221,15 @@ function createLevel(game) {
         }
 
         for (let y = height; y < levelHeight - 1; y++) {
-            if (y > height + Math.random() * 8 + 4) {
+	    if (y > height + Math.random() * 30 + 20) {
+		list[x][y] = blockInt.iron;
+	    } else if (y > height + Math.random() * 8 + 4) {
                 list[x][y] = blockInt.stone;
             } else {
                 list[x][y] = blockInt.dirt;
             }
         }
-        if (height == horizon) {
-            let treeHeight = Math.random()*7+7;
-            for (let h=height; h < treeHeight; h++) {
-                list[x][h] = blockInt.wood;
-            }
-        }
+	heights.push(height);
         if (Math.random() < flatness) {
             height += (Math.random() * 3 | 0) - 1;
         }
@@ -270,13 +269,24 @@ function createLevel(game) {
 
     for (let x = 0; x < levelWidth / 50; x++) {
         var randX = Math.random() * (levelWidth - 20) + 20 | 0;
-        console.log("tree at: ", randX);
-        var y = list[randX].length;
+	var ground = heights[randX];
         var height = Math.random() * 10 + 5 | 0;
-        for (; y < height; y++) {
-            list[randX][y] = blockInt.wood;
+        for (var i=0; i < height; i++) {
+            list[randX][ground-i] = blockInt.wood;
         }
-        list[randX][y] = blockInt.leaves;
+	let leafType = Math.round(Math.random() * 1);
+	if (leafType == 0)
+	    leafType = blockInt.leaves;
+	else
+	    leafType = blockInt.dark_leaves;
+
+	let width = Math.round(Math.random() * 5) + 1 ;
+	let center = (width * 3 / 2) | 0;
+	for (var j=1; j <= width; j++) {
+	    var xrow = list[randX-(center)+j*3];
+	    if (xrow != undefined && xrow != null)
+		xrow[ground-height] = leafType;
+	}
     }
 }
 
@@ -349,7 +359,7 @@ function EnemyHandler(game) {
     this.jumpHeight = 12.0;
     this.jumpDelay = 12.0;
     this.startHp = 8;
-    this.spawnRate = 0.01;
+    this.spawnRate = 0.03;
     this.list = [];
     this.pool = [];
 }
@@ -360,6 +370,7 @@ EnemyHandler.prototype.init = function (game) {
     this.blockSize = game.blockSize;
     this.blockInt = game.blockInt;
     this.gridList = game.gridHandler.list;
+    this.time = game.time;
     this.blood = game.bloodHandler.create.bind(game.bloodHandler);
     this.levelWidth = game.levelWidth;
     this.levelHeight = game.levelHeight;
@@ -374,6 +385,11 @@ EnemyHandler.prototype.enterFrame = function (game) {
     if ((i < 0.25 || i > 0.75) && Math.random() < this.spawnRate) {
         this.create();
     }
+
+    if ((i > 0.25 && i < 0.75) && Math.random() < this.spawnRate/35) {
+	this.create();
+    }
+
     for (var k = this.list.length - 1; k >= 0; k--) {
         enemy = this.list[k];
         if (enemy.hp <= 0) {
@@ -381,7 +397,8 @@ EnemyHandler.prototype.enterFrame = function (game) {
             this.list.splice(k, 1);
             this.blood(enemy.x, enemy.y, 0, 0, 15);
             var mod = this.playerHandler.kills % 50 == 0;
-            this.playerHandler.kills++;
+	    if (enemy.lastHit == 'shot')
+		this.playerHandler.kills++;
             if (!mod && this.playerHandler.kills % 50 == 0) {
                 game.newLevel = true;
             }
@@ -391,30 +408,31 @@ EnemyHandler.prototype.enterFrame = function (game) {
             enemy.willJump = true;
         }
         if (enemy.canJump < 1 && enemy.willJump) {
+	    enemy.boredLevel++;
             enemy.vY = -this.jumpHeight;
             enemy.willJump = false;
         }
-        if (enemy.boredLevel > 10) { enemy.acknowledgeBored = true; }
+        if (enemy.boredLevel > 10) enemy.acknowledgeBored = true;
+        if (enemy.boredLevel < 0) {
+	    enemy.acknowledgeBored = false;
+	    enemy.boredLevel = 0;
+	}
         if (player.x < enemy.x || (enemy.acknowledgeBored &&
-                                   player.x > enemy.x &&
-                                   enemy.boredLevel > 0)) {
-            if (enemy.lastDir == 1) { enemy.boredLevel += 2; }
+                                   player.x > enemy.x)) {
             enemy.vX -= enemy.accel;
             enemy.lastDir = -1;
             if (enemy.vX < -enemy.speed) {
                 enemy.vX = -enemy.speed;
             }
-            enemy.boredLevel--;
+            enemy.boredLevel -= 0.01;
         } else if (player.x > enemy.x || (enemy.acknowledgeBored &&
-                                          player.x < enemy.x &&
-                                          enemy.boredLevel > 0)) {
-            if (enemy.lastDir == -1) { enemy.boredLevel += 2; }
+                                          player.x < enemy.x)) {
             enemy.vX += enemy.accel;
             enemy.lastDir = 1;
             if (enemy.vX > enemy.speed) {
                 enemy.vX = enemy.speed;
             }
-            enemy.boredLevel--;
+            enemy.boredLevel -= 0.01;
         }
         newX = enemy.x + enemy.vX;
         startX = Math.max((newX - enemy.width / 2) / blockSize | 0, 0);
@@ -427,6 +445,19 @@ EnemyHandler.prototype.enterFrame = function (game) {
             for (j = startY; j <= endY; j++) {
                 if (gridList[i][j] !== false && gridList[i][j] != blockInt.cloud &&
                     gridList[i][j] != blockInt.platform) {
+		    if (this.time % 100 == 0) {
+			let pen = false;
+			if (enemy.level > 8 && gridList[i][j] == blockInt.wood) {
+			    gridList[i][j] = false;
+			    pen = true;
+			}
+			if (enemy.level > 5 && gridList[i][j] == blockInt.dirt) {
+			    gridList[i][j] = false;
+			    pen = true;
+			}
+			if (pen)
+			    continue;
+		    }
                     if (gridList[i][j] == blockInt.water) {
                         enemy.inWater = true;
                         if (enemy.vX > enemy.speed / 2) {
@@ -434,6 +465,9 @@ EnemyHandler.prototype.enterFrame = function (game) {
                         } else if (enemy.vX < -enemy.speed / 2) {
                             enemy.vX = -enemy.speed / 2;
                         }
+		    } else if (gridList[i][j] == blockInt.fire) {
+			this.blood(enemy.x, enemy.y, 0, 0, 2);
+			enemy.hp--;
                     } else {
                         if (newX < i * blockSize) {
                             newX = i * blockSize - enemy.width / 2;
@@ -441,7 +475,6 @@ EnemyHandler.prototype.enterFrame = function (game) {
                             newX = i * blockSize + blockSize + enemy.width / 2;
                         }
                         enemy.vX = 0;
-                        enemy.boredLevel += Math.round(Math.random()*10);
                         enemy.willJump = true;
                     }
                 }
@@ -469,10 +502,24 @@ EnemyHandler.prototype.enterFrame = function (game) {
                         this.levelWidth - 1);
         endY = Math.min((newY + enemy.height / 2) / blockSize | 0, this.levelHeight -
                         1);
+	enemy.underWater = true;
         for (i = startX; i <= endX; i++) {
             for (j = startY; j <= endY; j++) {
                 if (gridList[i][j] !== false && gridList[i][j] != blockInt.cloud &&
                     gridList[i][j] != blockInt.platform) {
+		    if (this.time % 100 == 0) {
+			let pen = false;
+			if (enemy.level > 8 && gridList[i][j] == blockInt.wood) {
+			    gridList[i][j] = false;
+			    pen = true;
+			}
+			if (enemy.level > 5 && gridList[i][j] == blockInt.dirt) {
+			    gridList[i][j] = false;
+			    pen = true;
+			}
+			if (pen)
+			    continue;
+		    }
                     collide = true;
                     if (gridList[i][j] == blockInt.water) {
                         enemy.inWater = true;
@@ -496,6 +543,8 @@ EnemyHandler.prototype.enterFrame = function (game) {
                         enemy.canJump--;
                     }
                 }
+		enemy.underWater = enemy.underWater &&
+		    (gridList[i][j] != false && gridList[i][j] != blockInt.cloud);
             }
         }
         enemy.y = newY;
@@ -511,6 +560,11 @@ EnemyHandler.prototype.enterFrame = function (game) {
             player.vX += (player.x - enemy.x) * 0.05;
             player.vY += (player.y - enemy.y) * 0.05;
         }
+	if (enemy.underWater) {
+	    enemy.hp -= 0.004 * (player.kills / 50 | 0 + 1);
+	    if (this.game.time % 100 == 0)
+		enemy.lastHit = 'water';
+	}
     }
 };
 EnemyHandler.prototype.create = function () {
@@ -528,14 +582,18 @@ EnemyHandler.prototype.create = function () {
     enemy.y = 50;
     enemy.vX = 0;
     enemy.vY = 10;
-    enemy.hp = this.startHp;
-    enemy.level = (this.playerHandler.kills / 50) | 0;
+    enemy.lastHit = 'shot';
+    enemy.acknowledgeBored = false;
+    enemy.boredLevel = 0;
+    enemy.level = (this.playerHandler.kills / 50) | 0 + 2;
+    enemy.hp = this.startHp + enemy.level;
     enemy.accel = this.startAccel * enemy.level;
     enemy.speed = this.startSpeed * enemy.level;
     enemy.width = this.startWidth + enemy.level;
     enemy.height = this.startHeight + enemy.level;
     enemy.canJump = 0;
     enemy.inWater = false;
+    enemy.underWater = true;
     this.list[this.list.length] = enemy;
 };
 
@@ -563,9 +621,11 @@ GridHandler.prototype.init = function (game) {
     this.blockSize = game.blockSize;
     this.blockInt = game.blockInt;
     this.levelWidth = game.levelWidth;
+    this.renderHandler = game.renderHandler;
     this.levelHeight = game.levelHeight;
     this.list = [];
     this.waterList = [];
+    this.fireList = [];
     this.toggle = 0;
     for (var i = 0; i < this.levelWidth; i++) {
         this.list[i] = [];
@@ -579,6 +639,39 @@ GridHandler.prototype.enterFrame = function () {
     var levelWidth = this.levelWidth;
     var levelHeight = this.levelHeight;
     var toggle = this.toggle;
+    for (var i = this.fireList.length - 1; i >= 0; i--) {
+	var fire = this.fireList[i];
+	if (fire.t > 10000) {
+	    list[fire.x][fire.y] = false;
+	    this.fireList.splice(i, 1);
+	    let lightIdx = this.renderHandler.lights.findIndex(
+		obj => obj.x == fire.x && obj.y == fire.y
+	    );
+	    this.renderHandler.lights.splice(lightIdx, 1);
+	} else {
+	    fire.t++;
+	}
+	if (list[fire.x][fire.y + 1] == this.blockInt.wood) {
+	    list[fire.x][fire.y + 1] = this.blockInt.fire;
+	    this.fireList.push({ x: fire.x, y: fire.y + 1, t: 0 });
+	    this.renderHandler.lights.push({ x: fire.x, y: fire.y + 1 });
+	}
+	if (list[fire.x + 1][fire.y] == this.blockInt.wood) {
+	    list[fire.x + 1][fire.y] = this.blockInt.fire;
+	    this.fireList.push({ x: fire.x + 1, y: fire.y, t: 0 });
+	    this.renderHandler.lights.push({ x: fire.x + 1, y: fire.y });
+	}
+	if (list[fire.x - 1][fire.y] == this.blockInt.wood) {
+	    list[fire.x - 1][fire.y] = this.blockInt.fire;
+	    this.fireList.push({ x: fire.x - 1, y: fire.y, t: 0 });
+	    this.renderHandler.lights.push({ x: fire.x - 1, y: fire.y });
+	}
+	if (list[fire.x][fire.y - 1] == this.blockInt.wood) {
+	    list[fire.x][fire.y - 1] = this.blockInt.fire;
+	    this.fireList.push({ x: fire.x, y: fire.y - 1, t: 0 });
+	    this.renderHandler.lights.push({ x: fire.x, y: fire.y - 1 });
+	}
+    }
     for (var i = this.waterList.length - 1; i >= 0; i--) {
         toggle++;
         if (toggle > 9) {
@@ -590,7 +683,34 @@ GridHandler.prototype.enterFrame = function () {
         var water = this.waterList[i];
         if (list[water.x][water.y] != this.blockInt.water) {
             this.waterList.splice(i, 1);
-            continue
+	}
+	if (list[water.x][water.y + 1] === this.blockInt.fire) {
+            list[water.x][water.y + 1] = this.blockInt.wood;
+	    let idx = this.fireList.findIndex(
+		obj => obj.x == water.x && obj.y == water.y + 1
+	    );
+	    this.fireList.splice(idx, 1);
+        }
+	if (list[water.x][water.y - 1] === this.blockInt.fire) {
+            list[water.x][water.y - 1] = this.blockInt.wood;
+	    let idx = this.fireList.findIndex(
+		obj => obj.x == water.x && obj.y == water.y - 1
+	    );
+	    this.fireList.splice(idx, 1);
+        }
+        if (list[water.x - 1][water.y] === this.blockInt.fire) {
+            list[water.x - 1][water.y] = this.blockInt.wood;
+	    let idx = this.fireList.findIndex(
+		obj => obj.x == water.x - 1 && obj.y == water.y
+	    );
+	    this.fireList.splice(idx, 1);
+        }
+        if (list[water.x + 1][water.y] === this.blockInt.fire) {
+            list[water.x + 1][water.y] = this.blockInt.wood;
+	    let idx = this.fireList.findIndex(
+		obj => obj.x == water.x + 1 && obj.y == water.y
+	    );
+	    this.fireList.splice(idx, 1);
         }
         if (water.y < levelHeight && list[water.x][water.y + 1] === false) {
             list[water.x][water.y + 1] = this.blockInt.water;
@@ -598,7 +718,13 @@ GridHandler.prototype.enterFrame = function () {
                 x: water.x,
                 y: water.y + 1
             };
-            continue
+        }
+	if (water.y > levelHeight/2 && list[water.x][water.y - 1] === false) {
+            list[water.x][water.y - 1] = this.blockInt.water;
+            this.waterList[this.waterList.length] = {
+                x: water.x,
+                y: water.y - 1
+            };
         }
         if (water.x > 0 && list[water.x - 1][water.y] === false) {
             list[water.x - 1][water.y] = this.blockInt.water;
@@ -606,7 +732,6 @@ GridHandler.prototype.enterFrame = function () {
                 x: water.x - 1,
                 y: water.y
             };
-            continue;
         }
         if (water.x < levelWidth - 1 && list[water.x + 1][water.y] ===
             false) {
@@ -615,7 +740,6 @@ GridHandler.prototype.enterFrame = function () {
                 x: water.x + 1,
                 y: water.y
             };
-            continue;
         }
     }
     this.toggle++;
@@ -655,7 +779,8 @@ function Game() {
         dirt: '#AE9A73',
         water: 'rgba(0,72,151,0.5)',
         cloud: 'rgba(255,255,255,0.7)',
-        leaves: 'rgba(100, 200, 50,0.8)',
+        leaves: 'rgba(100, 200, 50, 0.8)',
+        dark_leaves: 'rgba(0, 51, 0, 0.9)',
     };
     this.blockInt = {};
     this.blockColor = [];
@@ -709,11 +834,11 @@ Game.prototype.enterFrame = function () {
     }
     this.handlers.forEach((h) => this[h+'Handler'].enterFrame(this));
 
-    if (this.newLevel && newLevelTime - time > 50) {
+    if (this.newLevel && this.time - newLevelTime > 10) {
         this.newLevel = false;
         newLevelTime = -1;
     } else if (this.newLevel && newLevelTime < 0) {
-        newLevelTime = time;
+        newLevelTime = this.time;
     } else if (this.newLevel) {
         drawNewLevelAlert(this);
     }
@@ -777,6 +902,7 @@ function PlayerHandler(game) {
     this.inventory = {};
     this.inventory[game.blockInt.platform] = 300;
     this.inventory[game.blockInt.wood] = 300;
+    this.inventory[game.blockInt.iron] = 10;
     Object.values(game.blockInt).forEach((int) => this.inventory[int] = this.inventory[int] || 15);
     this.fallSpeed = 8.0;
     this.width = 40;
@@ -868,6 +994,18 @@ function PlayerHandler(game) {
         requiredKills: 0,
         type: game.blockInt.dirt
     }, {
+	name: 'Build Leaf',
+	reload: 10,
+	count: -1,
+	requiredKills: 100,
+	type: game.blockInt.leaves,
+    }, {
+	name: 'Build Dark Leaf',
+	reload: 10,
+	count: -1,
+	requiredKills: 100,
+	type: game.blockInt.dark_leaves,
+    }, {
         name: 'Build Stone',
         reload: 10,
         count: -1,
@@ -877,7 +1015,7 @@ function PlayerHandler(game) {
         name: 'Build Wood',
         reload: 6,
         count: -1,
-        requiredKills: 100,
+	requiredKills: 100,
         type: game.blockInt.wood
     }, {
         name: 'Build Platform',
@@ -890,6 +1028,12 @@ function PlayerHandler(game) {
         reload: 29,
         requiredKills: 0,
         count: -2
+    }, {
+	name: 'Build Iron',
+	reload: 30,
+	count: -1,
+	requiredKills: 500,
+	type: game.blockInt.iron,
     }];
     this.actions.sort(function(a, b) { return a.requiredKills-b.requiredKills; });
     this.kills = 0;
@@ -932,7 +1076,7 @@ PlayerHandler.prototype.init = function (game) {
 PlayerHandler.prototype.enterFrame = function () {
     var controlHandler = this.controlHandler;
     var accel = this.accel;
-    var speed = this.speed;
+    var speed = this.speed * Math.min(11, 1 + this.kills / 200) | 0;
     var blockSize = this.blockSize;
     var blockInt = this.blockInt;
     var gridList = this.gridHandler.list;
@@ -947,7 +1091,7 @@ PlayerHandler.prototype.enterFrame = function () {
     }
     if (this.underWater) { this.hp -= 0.02; }
     if (this.canJump < 1 && controlHandler.space && this.spaceDown == false) {
-        this.vY = -this.jumpHeight;
+        this.vY = -this.jumpHeight * Math.min(3.5, 1 + this.kills / 500) |0;
         this.spaceDown = true;
     }
     if (controlHandler.space == false && this.spaceDown) {
@@ -984,7 +1128,9 @@ PlayerHandler.prototype.enterFrame = function () {
     for (i = startX; i <= endX; i++) {
         for (j = startY; j <= endY; j++) {
             if (gridList[i][j] !== false && gridList[i][j] != blockInt.cloud &&
-                gridList[i][j] != blockInt.platform) {
+                gridList[i][j] != blockInt.platform &&
+		gridList[i][j] != blockInt.leaves &&
+		gridList[i][j] != blockInt.dark_leaves) {
                 if (gridList[i][j] == blockInt.water) {
                     this.inWater = true;
                     if (this.vX > speed * 0.5) {
@@ -1031,7 +1177,9 @@ PlayerHandler.prototype.enterFrame = function () {
     for (i = startX; i <= endX; i++) {
         for (j = startY; j <= endY; j++) {
             if (gridList[i][j] !== false && gridList[i][j] != blockInt.cloud &&
-                gridList[i][j] != blockInt.platform) {
+                gridList[i][j] != blockInt.platform &&
+		gridList[i][j] != blockInt.leaves &&
+		gridList[i][j] != blockInt.dark_leaves) {
                 collide = true;
                 if (gridList[i][j] == blockInt.water) {
                     this.inWater = true;
@@ -1105,6 +1253,7 @@ PlayerHandler.prototype.enterFrame = function () {
                     if (this.actionObject.count == -2) {
                         if (gridList[X][Y] != blockInt.bedrock) {
                             let block = gridList[X][Y];
+			    if (block == blockInt.fire) block = blockInt.wood;
                             gridList[X][Y] = false;
                             this.inventory[block]++;
                             this.reload = this.blockDifficulty[block];
@@ -1122,7 +1271,6 @@ PlayerHandler.prototype.enterFrame = function () {
             let offsetX = this.viewHandler.x - this.halfWidth;
             let offsetY = this.viewHandler.y - this.halfHeight;
             for (let i = this.actionObject.count - 1; i >= 0; i--) {
-                console.log(this.actionObject.conditions == undefined || this.actionObject.conditions(this));
                 if (this.actionObject.conditions == undefined || this.actionObject.conditions(this)) {
                     this.shoot(this.x, this.y - 4, controlHandler.mouseX +
                                offsetX, controlHandler.mouseY + offsetY, this.actionObject);
@@ -1258,20 +1406,31 @@ RenderHandler.prototype.enterFrame = function () {
                                   '#E23822',
                                   '#E2222C',
                                   '#E2224C'];
-                    context.rect(X, Y, blockSize, blockSize);
-                    context.fillStyle = colors[Math.round(Math.random()*colors.length)-1];
-                    context.shadowColor = Math.round(Math.random()*colors.length-1);
+		    let color = colors[Math.round(Math.random()*colors.length)-1];
+
+		    context.shadowColor = color;
                     context.shadowBlur = Math.round(Math.random()*70+3);
-                    context.shadowOffsetX = Math.round(Math.random()*15);
-                    context.shadowOffsetY = Math.round(Math.random()*15);
-                    context.fill();
+                    context.fillStyle = color;
+                    context.fillRect(X, Y, blockSize, blockSize);
+		    context.shadowColor = '';
+		    context.shadowBlur = 0;
+		    context.shadowOffsetX = 0;
+		    context.shadowOffsetY = 0;
                 } else if (obj == blockInt.leaves) {
                     context.fillStyle = blockColor[obj];
-                    ctx.beginPath();
-                    ctx.moveTo(X-blockSize*2, Y);
-                    ctx.lineTo(X, Y+blockSize*5);
-                    ctx.lineTo(X+blockSize*2, Y);
-                    ctx.fill();
+                    context.beginPath();
+                    context.moveTo(X+blockSize*5, Y+blockSize*2);
+		    context.lineTo(X+blockSize/2, Y-blockSize*5);
+                    context.lineTo(X-blockSize*4, Y+blockSize*2);
+                    context.fill();
+                } else if (obj == blockInt.dark_leaves) {
+                    context.fillStyle = blockColor[obj];
+                    context.beginPath();
+                    context.moveTo(X+blockSize*5, Y+blockSize*2);
+		    context.lineTo(X+blockSize*5, Y-blockSize*2);
+		    context.lineTo(X-blockSize*4, Y-blockSize*2);
+                    context.lineTo(X-blockSize*4, Y+blockSize*2);
+                    context.fill();
                 } else {
                     context.fillStyle = blockColor[obj];
                     context.fillRect(X, Y, blockSize, blockSize);
@@ -1291,9 +1450,11 @@ RenderHandler.prototype.enterFrame = function () {
     Y = Math.round(pY + offsetY - player.height / 2);
     context.fillStyle = '#333333';
     context.fillRect(X, Y, player.width, player.height);
-    context.fillStyle = '#774444';
     for (i = this.enemyHandler.list.length - 1; i >= 0; i--) {
         obj = this.enemyHandler.list[i];
+	let red = Math.min(255, obj.level * 10 + 150);
+	let other = Math.max(0, 255 - obj.level * 10 + 150);
+	context.fillStyle = '#774444';
         context.fillRect(Math.round(obj.x + offsetX - obj.width * 0.5),
                          Math.round(obj.y + offsetY - obj.height * 0.5), obj.width,
                          obj.height);
@@ -1348,28 +1509,36 @@ RenderHandler.prototype.enterFrame = function () {
         }
     }
     for (i = startX; i < endX; i++) {
-        depth = 0;
+        var depth = 0;
         for (j = 0; j < endY; j++) {
             obj = gridList[i][j];
             if (obj != blockInt.bedrock && obj != blockInt.cloud && obj !=
-                false || j >= horizon) {
+                false && obj != blockInt.fire || j >= horizon) {
                 X = i * blockSize;
                 Y = j * blockSize;
-                var dists = this.lights.map((l) =>
-                                            Math.pow(l.x-X-blockHalf,2)+
-                                            Math.pow(l.x-Y-blockHalf,2));
-                dists.push(Math.pow(pX-X - blockHalf,2) + Math.pow(pY-Y - blockHalf,2));
+                var dists = this.lights.map((l) => {
+		    let lX = l.x*blockSize;
+		    let lY = l.y*blockSize;
+		    return Math.pow(lX-X-blockHalf,2)+
+		      	   Math.pow(lY-Y-blockHalf,2);
+		});
+                dists.push(Math.pow(pX-X - blockHalf,2) +
+		           Math.pow(pY-Y - blockHalf,2));
                 dist = Math.min(...dists);
                 X = Math.round(X + offsetX);
                 Y = Math.round(Y + offsetY);
                 context.fillStyle = 'rgba(0,0,0,' +
-                    (depth * 0.05 * Math.max(Math.min(dist / 16000, 1), 0.4)) + ')';
+                    (depth * 0.02 * Math.max(Math.min(dist / 16000, 1), 0.4)) + ')';
                 context.fillRect(X, Y, blockSize, blockSize);
                 if (obj == blockInt.platform) {
                     depth += 0.2;
                 } else if (obj == blockInt.water) {
                     depth += 0.5;
-                } else {
+                } else if (obj == blockInt.wood) {
+		    depth += 0.8;
+		} else if (obj == blockInt.fire) {
+		    depth -= 10;
+		} else {
                     depth += 1;
                 }
             }
@@ -1465,6 +1634,7 @@ ShotHandler.prototype.init = function (game) {
     this.blockInt = game.blockInt;
     this.gridList = game.gridHandler.list;
     this.enemyHandler = game.enemyHandler;
+    this.gridHandler = game.gridHandler;
     this.renderHandler = game.renderHandler;
     this.dust = game.dustHandler.create.bind(game.dustHandler);
     this.blood = game.bloodHandler.create.bind(game.bloodHandler);
@@ -1509,6 +1679,7 @@ ShotHandler.prototype.enterFrame = function () {
                         && gridList[X][Y-1] != blockInt.water
                         && gridList[X][Y+1] != blockInt.water) {
                         gridList[X][Y] = blockInt.fire;
+			this.gridHandler.fireList.push({ x: X, y: Y, t: 0 });
                         this.renderHandler.lights.push({ x: X, y: Y });
                     } else {
                         gridList[X][Y] = false;
@@ -1524,6 +1695,7 @@ ShotHandler.prototype.enterFrame = function () {
                 enemy.x + enemy.width * 0.5 && shot.y + 2 > enemy.y - enemy
                 .height * 0.5 && shot.y - 2 < enemy.y + enemy.height * 0.5) {
                 enemy.hp -= shot.damage;
+		enemy.lastHit = 'shot';
                 enemy.vX = shot.vX * 0.03;
                 enemy.vY = shot.vY * 0.03;
                 shot.hp = -99;
