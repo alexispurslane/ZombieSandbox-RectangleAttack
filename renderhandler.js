@@ -235,8 +235,8 @@ export default {
                     j == HORIZON &&
                     GridHandler.list[i][j - 1] === false
                 ) {
-                    X = Math.round(i * BLOCK_SIZE + this.offsetX);
-                    Y = Math.round(j * BLOCK_SIZE + this.offsetY);
+                    let X = Math.round(i * BLOCK_SIZE + this.offsetX);
+                    let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
                     this.context.fillStyle = 'rbga(0,0,0,0.2)';
                     this.context.fillRect(X + 1, Y, 2, 2);
                     this.context.fillRect(X + 5, Y, 3, 3);

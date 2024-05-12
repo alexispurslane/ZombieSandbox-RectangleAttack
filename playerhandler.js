@@ -1,5 +1,5 @@
 import { BLOCK_INTS } from './blocks.js';
-import { BLOCK_SIZE, LEVEL_WIDTH } from './constants.js';
+import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
 import ShotHandler from './shothandler.js';
 import GridHandler from './gridhandler.js';
 import ViewHandler from './viewhandler.js';
@@ -106,11 +106,11 @@ export default {
         var startY = Math.max(((this.y - height * 0.5) / BLOCK_SIZE) | 0, 0);
         var endX = Math.min(
             ((newX + width * 0.5 - 1) / BLOCK_SIZE) | 0,
-            this.levelWidth - 1
+            LEVEL_WIDTH - 1
         );
         var endY = Math.min(
             ((this.y + height * 0.5) / BLOCK_SIZE) | 0,
-            this.levelHeight - 1
+            LEVEL_HEIGHT - 1
         );
         this.underWater = true;
         for (i = startX; i <= endX; i++) {
@@ -165,11 +165,11 @@ export default {
         startY = Math.max(((newY - height * 0.5) / BLOCK_SIZE) | 0, 0);
         endX = Math.min(
             ((this.x + width * 0.5 - 1) / BLOCK_SIZE) | 0,
-            this.levelWidth - 1
+            LEVEL_WIDTH - 1
         );
         endY = Math.min(
             ((newY + height * 0.5) / BLOCK_SIZE) | 0,
-            this.levelHeight - 1
+            LEVEL_HEIGHT - 1
         );
         for (i = startX; i <= endX; i++) {
             for (j = startY; j <= endY; j++) {
@@ -226,12 +226,7 @@ export default {
                 if (this.reload <= 0 && ControlHandler.mouseLeft) {
                     X = (X / BLOCK_SIZE) | 0;
                     Y = (Y / BLOCK_SIZE) | 0;
-                    if (
-                        X > 0 &&
-                        X < this.levelWidth &&
-                        Y > 0 &&
-                        Y < this.levelHeight
-                    ) {
+                    if (X > 0 && X < LEVEL_WIDTH && Y > 0 && Y < LEVEL_HEIGHT) {
                         if (this.actionObject.count == -1) {
                             if (
                                 gridList[X][Y] == false ||
