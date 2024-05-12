@@ -3,13 +3,15 @@
 
 ### How to play
 
+Download the ZIP file and open the `index.html` in your browser of choice for the latest version of the game, or visit [the GitHub Pages hosted version](https://alexispurslane.github.io/ZombieSandbox-RectangleAttack/) for maximum convenience — it's just a simple vanilla JS/HTML5 canvas game so it should work everywhere.
+
 #### Basics
 
 Your job in this game is to simply see how many zombies you can kill before you die or get bored with a run, whatever happens first, while keeping it fun for yourself (i.e., avoid holing up in towers or foxholes for too long because it isn't fun). During the day, there are a few weak, slow-moving zombies dotting the procedurally generated 2D landscape here and there to keep it interesting, but the daytime is when you want to explore and build your fort. Then, when night falls, watch out: zombies will come raining down from the sky (from where? Planes, I guess?). There's no real end goal or objective beyond that — what can I say? It's just a bit of dumb fun, something to play while your code is compiling or your coffee is brewing. Give it a shot!
 
 #### Keybindings
 
-Download the ZIP file and open the `index.html` in your browser of choice, it's a simple vanilla JS/HTML5 canvas game. Keybindings are:
+Keybindings are:
 
 - <kbd>space</kbd> to jump or swim up when in water
 - <kbd>a</kbd> and <kbd>s</kbd> to move left and right respectively
