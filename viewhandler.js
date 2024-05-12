@@ -3,7 +3,7 @@ import PlayerHandler from './playerhandler.js';
 
 export default {
     init(game) {
-        this.x = game.levelWidth * game.blockSize * 0.5;
+        this.x = LEVEL_WIDTH * BLOCK_SIZE * 0.5;
         this.y = 300;
         this.canvas = game.canvas;
     },

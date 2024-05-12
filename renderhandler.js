@@ -19,24 +19,68 @@ export default {
         this.lights = [];
         this.lights = [];
     },
+
     enterFrame() {
-        var context = this.context;
-        var gridList = GridHandler.list;
-        var blockHalf = BLOCK_SIZE / 2;
-        var pX = PlayerHandler.x;
-        var pY = PlayerHandler.y;
-        var obj, X, Y, i, j, depth, dist;
-        dist = this.game.time * this.timeRatio;
-        i = Math.sin(dist);
-        j = Math.cos(dist);
-        var gradient = context.createLinearGradient(
+        this.offsetX = this.canvas.width * 0.5 - ViewHandler.x;
+        this.offsetY = this.canvas.height * 0.5 - ViewHandler.y;
+
+        this.startX = Math.max((-this.offsetX / BLOCK_SIZE) | 0, 0);
+        this.endX = Math.min(
+            this.startX + Math.ceil(this.canvas.width / BLOCK_SIZE) + 1,
+            LEVEL_WIDTH
+        );
+        this.startY = Math.max((-this.offsetY / BLOCK_SIZE) | 0, 0);
+        this.endY = Math.min(
+            this.startY + Math.ceil(this.canvas.height / BLOCK_SIZE) + 1,
+            LEVEL_HEIGHT
+        );
+
+        this.drawBackground(this.game.time * this.timeRatio);
+
+        this.drawMap();
+
+        this.context.fillStyle = '#333333';
+        this.drawPlayer();
+
+        this.context.fillStyle = '#698362';
+        this.drawZombies();
+
+        this.context.fillStyle = '#333333';
+        this.drawShots();
+
+        this.context.fillStyle = '#555555';
+        this.drawDust();
+
+        this.context.fillStyle = '#AA4444';
+        this.drawBlood();
+
+        // Draws water, clouds, and shadows, which need to draw over the above things.
+        this.drawMapOverDraw();
+
+        // Darken things if you're very deep
+        let depth = Math.min(
+            Math.cos(this.game.time * this.timeRatio) + 0.3,
+            0.5
+        );
+        if (depth > 0) {
+            this.context.fillStyle = 'rgba(0,0,0,' + depth + ')';
+            this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+
+        this.drawUI();
+    },
+
+    drawBackground(time) {
+        let i = Math.sin(time);
+        let j = Math.cos(time);
+        let depth = ((ViewHandler.y / (LEVEL_HEIGHT * BLOCK_SIZE)) * 250) | 0;
+        let dist = ((j + 1) * 75) | 0;
+        var gradient = this.context.createLinearGradient(
             0,
             0,
             0,
             this.canvas.height
         );
-        depth = ((ViewHandler.y / (this.levelHeight * BLOCK_SIZE)) * 250) | 0;
-        dist = ((j + 1) * 75) | 0;
         gradient.addColorStop(
             0,
             'rgb(' +
@@ -57,51 +101,64 @@ export default {
                 (228 + depth - dist) +
                 ')'
         );
-        context.fillStyle = gradient;
-        context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        X = this.canvas.width * 0.5 + i * this.sunMoonArcRadius;
-        Y = this.canvas.height + j * this.sunMoonArcRadius;
-        context.fillStyle = '#FEDB16';
-        context.beginPath();
-        context.arc(X, Y, 30, 0, 6.2832);
-        context.fill();
-        context.closePath();
-        X = this.canvas.width * 0.5 + -i * this.sunMoonArcRadius;
-        Y = this.canvas.height + -j * this.sunMoonArcRadius;
-        context.fillStyle = '#FFFFFF';
-        context.beginPath();
-        context.arc(X, Y, 30, 1.2, 4.3416);
-        context.fill();
-        context.closePath();
-        var offsetX = this.canvas.width * 0.5 - ViewHandler.x;
-        var offsetY = this.canvas.height * 0.5 - ViewHandler.y;
-        context.fillStyle = '#776655';
-        Y = Math.round(HORIZON * BLOCK_SIZE + offsetY);
-        context.fillRect(0, Y, this.canvas.width, this.canvas.height - Y);
-        var startX = Math.max((-offsetX / BLOCK_SIZE) | 0, 0);
-        var endX = Math.min(
-            startX + Math.ceil(this.canvas.width / BLOCK_SIZE) + 1,
-            LEVEL_WIDTH
-        );
-        var startY = Math.max((-offsetY / BLOCK_SIZE) | 0, 0);
-        var endY = Math.min(
-            startY + Math.ceil(this.canvas.height / BLOCK_SIZE) + 1,
-            LEVEL_HEIGHT
-        );
-        for (i = startX; i < endX; i++) {
-            for (j = startY; j < endY; j++) {
-                obj = gridList[i][j];
+        // Draw sky
+        this.context.fillStyle = gradient;
+        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw sun
+        {
+            let X = this.canvas.width * 0.5 + i * this.sunMoonArcRadius;
+            let Y = this.canvas.height + j * this.sunMoonArcRadius;
+            this.context.fillStyle = '#FEDB16';
+            this.context.beginPath();
+            this.context.arc(X, Y, 30, 0, 6.2832);
+            this.context.fill();
+            this.context.closePath();
+        }
+
+        {
+            let X = this.canvas.width * 0.5 + -i * this.sunMoonArcRadius;
+            let Y = this.canvas.height + -j * this.sunMoonArcRadius;
+            this.context.fillStyle = '#FFFFFF';
+            this.context.beginPath();
+            this.context.arc(X, Y, 30, 1.2, 4.3416);
+            this.context.fill();
+            this.context.closePath();
+        }
+
+        // Draw background of ground
+        {
+            this.context.fillStyle = '#776655';
+            let Y = Math.round(HORIZON * BLOCK_SIZE + this.offsetY);
+            this.context.fillRect(
+                0,
+                Y,
+                this.canvas.width,
+                this.canvas.height - Y
+            );
+        }
+    },
+
+    drawMap() {
+        for (let i = this.startX; i < this.endX; i++) {
+            for (let j = this.startY; j < this.endY; j++) {
+                let obj = GridHandler.list[i][j];
                 if (
                     obj !== false &&
                     obj != BLOCK_INTS.water &&
                     obj != BLOCK_INTS.cloud
                 ) {
-                    X = Math.round(i * BLOCK_SIZE + offsetX);
-                    Y = Math.round(j * BLOCK_SIZE + offsetY);
+                    let X = Math.round(i * BLOCK_SIZE + this.offsetX);
+                    let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
                     if (obj == BLOCK_INTS.platform) {
-                        context.fillStyle = BLOCK_COLORS[obj];
-                        context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE * 0.25);
-                        context.fillRect(
+                        this.context.fillStyle = BLOCK_COLORS[obj];
+                        this.context.fillRect(
+                            X,
+                            Y,
+                            BLOCK_SIZE,
+                            BLOCK_SIZE * 0.25
+                        );
+                        this.context.fillRect(
                             X,
                             Y + BLOCK_SIZE * 0.5,
                             BLOCK_SIZE,
@@ -122,136 +179,174 @@ export default {
                                 Math.round(Math.random() * colors.length) - 1
                             ];
 
-                        context.shadowColor = color;
-                        context.shadowBlur = Math.round(Math.random() * 70 + 3);
-                        context.fillStyle = color;
-                        context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
-                        context.shadowColor = '';
-                        context.shadowBlur = 0;
-                        context.shadowOffsetX = 0;
-                        context.shadowOffsetY = 0;
+                        this.context.shadowColor = color;
+                        this.context.shadowBlur = Math.round(
+                            Math.random() * 70 + 3
+                        );
+                        this.context.fillStyle = color;
+                        this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                        this.context.shadowColor = '';
+                        this.context.shadowBlur = 0;
+                        this.context.shadowOffsetX = 0;
+                        this.context.shadowOffsetY = 0;
                     } else if (obj == BLOCK_INTS.leaves) {
-                        context.fillStyle = BLOCK_COLORS[obj];
-                        context.beginPath();
-                        context.moveTo(X + BLOCK_SIZE * 5, Y + BLOCK_SIZE * 2);
-                        context.lineTo(X + BLOCK_SIZE / 2, Y - BLOCK_SIZE * 5);
-                        context.lineTo(X - BLOCK_SIZE * 4, Y + BLOCK_SIZE * 2);
-                        context.fill();
+                        this.context.fillStyle = BLOCK_COLORS[obj];
+                        this.context.beginPath();
+                        this.context.moveTo(
+                            X + BLOCK_SIZE * 5,
+                            Y + BLOCK_SIZE * 2
+                        );
+                        this.context.lineTo(
+                            X + BLOCK_SIZE / 2,
+                            Y - BLOCK_SIZE * 5
+                        );
+                        this.context.lineTo(
+                            X - BLOCK_SIZE * 4,
+                            Y + BLOCK_SIZE * 2
+                        );
+                        this.context.fill();
                     } else if (obj == BLOCK_INTS.dark_leaves) {
-                        context.fillStyle = BLOCK_COLORS[obj];
-                        context.beginPath();
-                        context.moveTo(X + BLOCK_SIZE * 5, Y + BLOCK_SIZE * 2);
-                        context.lineTo(X + BLOCK_SIZE * 5, Y - BLOCK_SIZE * 2);
-                        context.lineTo(X - BLOCK_SIZE * 4, Y - BLOCK_SIZE * 2);
-                        context.lineTo(X - BLOCK_SIZE * 4, Y + BLOCK_SIZE * 2);
-                        context.fill();
+                        this.context.fillStyle = BLOCK_COLORS[obj];
+                        this.context.beginPath();
+                        this.context.moveTo(
+                            X + BLOCK_SIZE * 5,
+                            Y + BLOCK_SIZE * 2
+                        );
+                        this.context.lineTo(
+                            X + BLOCK_SIZE * 5,
+                            Y - BLOCK_SIZE * 2
+                        );
+                        this.context.lineTo(
+                            X - BLOCK_SIZE * 4,
+                            Y - BLOCK_SIZE * 2
+                        );
+                        this.context.lineTo(
+                            X - BLOCK_SIZE * 4,
+                            Y + BLOCK_SIZE * 2
+                        );
+                        this.context.fill();
                     } else {
-                        context.fillStyle = BLOCK_COLORS[obj];
-                        context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                        this.context.fillStyle = BLOCK_COLORS[obj];
+                        this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                     }
                 }
                 if (
                     obj === false &&
                     j == HORIZON &&
-                    gridList[i][j - 1] === false
+                    GridHandler.list[i][j - 1] === false
                 ) {
-                    X = Math.round(i * BLOCK_SIZE + offsetX);
-                    Y = Math.round(j * BLOCK_SIZE + offsetY);
-                    context.fillStyle = 'rbga(0,0,0,0.2)';
-                    context.fillRect(X + 1, Y, 2, 2);
-                    context.fillRect(X + 5, Y, 3, 3);
-                    context.fillRect(X + 11, Y, 2, 2);
+                    X = Math.round(i * BLOCK_SIZE + this.offsetX);
+                    Y = Math.round(j * BLOCK_SIZE + this.offsetY);
+                    this.context.fillStyle = 'rbga(0,0,0,0.2)';
+                    this.context.fillRect(X + 1, Y, 2, 2);
+                    this.context.fillRect(X + 5, Y, 3, 3);
+                    this.context.fillRect(X + 11, Y, 2, 2);
                 }
             }
         }
+    },
 
-        X = Math.round(pX + offsetX - PlayerHandler.width / 2);
-        Y = Math.round(pY + offsetY - PlayerHandler.height / 2);
-        context.fillStyle = '#333333';
-        context.fillRect(X, Y, PlayerHandler.width, PlayerHandler.height);
+    drawPlayer() {
+        let X = Math.round(
+            PlayerHandler.x + this.offsetX - PlayerHandler.width / 2
+        );
+        let Y = Math.round(
+            PlayerHandler.y + this.offsetY - PlayerHandler.height / 2
+        );
+        this.context.fillRect(X, Y, PlayerHandler.width, PlayerHandler.height);
+    },
 
-        for (i = EnemyHandler.list.length - 1; i >= 0; i--) {
-            obj = EnemyHandler.list[i];
-            context.fillStyle = '#774444';
-            context.fillRect(
-                Math.round(obj.x + offsetX - obj.width * 0.5),
-                Math.round(obj.y + offsetY - obj.height * 0.5),
+    drawZombies() {
+        for (let i = EnemyHandler.list.length - 1; i >= 0; i--) {
+            let obj = EnemyHandler.list[i];
+            this.context.fillStyle = '#774444';
+            this.context.fillRect(
+                Math.round(obj.x + this.offsetX - obj.width * 0.5),
+                Math.round(obj.y + this.offsetY - obj.height * 0.5),
                 obj.width,
                 obj.height
             );
         }
-        context.fillStyle = '#333333';
-        for (i = ShotHandler.list.length - 1; i >= 0; i--) {
-            obj = ShotHandler.list[i];
-            dist = ShotHandler.size;
-            context.fillRect(
-                Math.round(obj.x + offsetX - dist / 2),
-                Math.round(obj.y + offsetY - dist / 2),
+    },
+
+    drawShots() {
+        for (let i = ShotHandler.list.length - 1; i >= 0; i--) {
+            let obj = ShotHandler.list[i];
+            let dist = ShotHandler.size;
+            this.context.fillRect(
+                Math.round(obj.x + this.offsetX - dist / 2),
+                Math.round(obj.y + this.offsetY - dist / 2),
                 dist,
                 dist
             );
         }
-        context.fillStyle = '#555555';
-        for (i = DustHandler.list.length - 1; i >= 0; i--) {
-            obj = DustHandler.list[i];
-            dist = DustHandler.size * (obj.hp / DustHandler.startHp);
-            context.fillRect(
-                Math.round(obj.x + offsetX - dist * 0.5),
-                Math.round(obj.y + offsetY - dist * 0.5),
+    },
+
+    drawDust() {
+        for (let i = DustHandler.list.length - 1; i >= 0; i--) {
+            let obj = DustHandler.list[i];
+            let dist = DustHandler.size * (obj.hp / DustHandler.startHp);
+            this.context.fillRect(
+                Math.round(obj.x + this.offsetX - dist * 0.5),
+                Math.round(obj.y + this.offsetY - dist * 0.5),
                 dist,
                 dist
             );
         }
-        context.fillStyle = '#AA4444';
-        for (i = BloodHandler.list.length - 1; i >= 0; i--) {
-            obj = BloodHandler.list[i];
-            dist = BloodHandler.size * (obj.hp / BloodHandler.startHp);
-            context.fillRect(
-                Math.round(obj.x + offsetX - dist * 0.5),
-                Math.round(obj.y + offsetY - dist * 0.5),
+    },
+
+    drawBlood() {
+        for (let i = BloodHandler.list.length - 1; i >= 0; i--) {
+            let obj = BloodHandler.list[i];
+            let dist = BloodHandler.size * (obj.hp / BloodHandler.startHp);
+            this.context.fillRect(
+                Math.round(obj.x + this.offsetX - dist * 0.5),
+                Math.round(obj.y + this.offsetY - dist * 0.5),
                 dist,
                 dist
             );
         }
-        for (i = startX; i < endX; i++) {
-            for (j = startY; j < endY; j++) {
-                obj = gridList[i][j];
+    },
+
+    drawMapOverDraw() {
+        for (let i = this.startX; i < this.endX; i++) {
+            for (let j = this.startY; j < this.endY; j++) {
+                let obj = GridHandler.list[i][j];
+                let X = Math.round(i * BLOCK_SIZE + this.offsetX);
+                let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
                 if (
                     obj == BLOCK_INTS.dirt &&
                     j <= HORIZON &&
-                    (gridList[i][j - 1] === false ||
-                        gridList[i][j - 1] == BLOCK_INTS.cloud)
+                    (GridHandler.list[i][j - 1] === false ||
+                        GridHandler.list[i][j - 1] == BLOCK_INTS.cloud)
                 ) {
-                    X = Math.round(i * BLOCK_SIZE + offsetX);
-                    Y = Math.round(j * BLOCK_SIZE + offsetY);
-                    context.fillStyle = 'rgba(45,130,45,0.75)';
-                    context.fillRect(X, Y - 3, BLOCK_SIZE, 3);
-                    context.fillRect(X + 1, Y - 5, 2, 2);
-                    context.fillRect(X + 5, Y - 5, 3, 2);
-                    context.fillRect(X + 11, Y - 5, 2, 2);
+                    this.context.fillStyle = 'rgba(45,130,45,0.75)';
+                    this.context.fillRect(X, Y - 3, BLOCK_SIZE, 3);
+                    this.context.fillRect(X + 1, Y - 5, 2, 2);
+                    this.context.fillRect(X + 5, Y - 5, 3, 2);
+                    this.context.fillRect(X + 11, Y - 5, 2, 2);
                 }
                 if (obj == BLOCK_INTS.water || obj == BLOCK_INTS.cloud) {
-                    X = Math.round(i * BLOCK_SIZE + offsetX);
-                    Y = Math.round(j * BLOCK_SIZE + offsetY);
-                    context.fillStyle = BLOCK_COLORS[obj];
-                    context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                    this.context.fillStyle = BLOCK_COLORS[obj];
+                    this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                 }
                 if (
                     obj == BLOCK_INTS.water &&
                     j <= HORIZON &&
-                    (gridList[i][j - 1] === false ||
-                        gridList[i][j - 1] == BLOCK_INTS.cloud)
+                    (GridHandler.list[i][j - 1] === false ||
+                        GridHandler.list[i][j - 1] == BLOCK_INTS.cloud)
                 ) {
-                    context.fillStyle = 'rgba(255,255,255,0.2)';
-                    context.fillRect(X, Y, BLOCK_SIZE, 6);
-                    context.fillRect(X, Y, BLOCK_SIZE / 2, 3);
+                    this.context.fillStyle = 'rgba(255,255,255,0.2)';
+                    this.context.fillRect(X, Y, BLOCK_SIZE, 6);
+                    this.context.fillRect(X, Y, BLOCK_SIZE / 2, 3);
                 }
             }
         }
-        for (i = startX; i < endX; i++) {
+
+        for (let i = this.startX; i < this.endX; i++) {
             var depth = 0;
-            for (j = 0; j < endY; j++) {
-                obj = gridList[i][j];
+            for (let j = 0; j < this.endY; j++) {
+                let obj = GridHandler.list[i][j];
                 if (
                     (obj != BLOCK_INTS.bedrock &&
                         obj != BLOCK_INTS.cloud &&
@@ -259,30 +354,31 @@ export default {
                         obj != BLOCK_INTS.fire) ||
                     j >= HORIZON
                 ) {
-                    X = i * BLOCK_SIZE;
-                    Y = j * BLOCK_SIZE;
-                    var dists = this.lights.map((l) => {
+                    let X = i * BLOCK_SIZE;
+                    let Y = j * BLOCK_SIZE;
+                    let dists = this.lights.map((l) => {
                         let lX = l.x * BLOCK_SIZE;
                         let lY = l.y * BLOCK_SIZE;
                         return (
-                            Math.pow(lX - X - blockHalf, 2) +
-                            Math.pow(lY - Y - blockHalf, 2)
+                            Math.pow(lX - X - BLOCK_SIZE / 2, 2) +
+                            Math.pow(lY - Y - BLOCK_SIZE / 2, 2)
                         );
                     });
                     dists.push(
-                        Math.pow(pX - X - blockHalf, 2) +
-                            Math.pow(pY - Y - blockHalf, 2)
+                        Math.pow(PlayerHandler.x - X - BLOCK_SIZE / 2, 2) +
+                            Math.pow(PlayerHandler.y - Y - BLOCK_SIZE / 2, 2)
                     );
-                    dist = Math.min(...dists);
-                    X = Math.round(X + offsetX);
-                    Y = Math.round(Y + offsetY);
-                    context.fillStyle =
+
+                    let dist = Math.min(...dists);
+                    X = Math.round(X + this.offsetX);
+                    Y = Math.round(Y + this.offsetY);
+                    this.context.fillStyle =
                         'rgba(0,0,0,' +
                         depth *
                             0.02 *
                             Math.max(Math.min(dist / 16000, 1), 0.4) +
                         ')';
-                    context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                    this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                     if (obj == BLOCK_INTS.platform) {
                         depth += 0.2;
                     } else if (obj == BLOCK_INTS.water) {
@@ -297,63 +393,65 @@ export default {
                 }
             }
         }
-        depth = Math.min(Math.cos(this.game.time * this.timeRatio) + 0.3, 0.5);
-        if (depth > 0) {
-            context.fillStyle = 'rgba(0,0,0,' + depth + ')';
-            context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        }
+    },
+
+    drawUI() {
         if (PlayerHandler.actionObject.count < 0 && PlayerHandler.canBuild) {
-            context.fillStyle = 'rgba(0,0,0,0.2)';
-            context.fillRect(
-                (((ControlHandler.mouseX - offsetX) / BLOCK_SIZE) | 0) *
+            this.context.fillStyle = 'rgba(0,0,0,0.2)';
+            this.context.fillRect(
+                (((ControlHandler.mouseX - this.offsetX) / BLOCK_SIZE) | 0) *
                     BLOCK_SIZE +
-                    offsetX,
-                (((ControlHandler.mouseY - offsetY) / BLOCK_SIZE) | 0) *
+                    this.offsetX,
+                (((ControlHandler.mouseY - this.offsetY) / BLOCK_SIZE) | 0) *
                     BLOCK_SIZE +
-                    offsetY,
+                    this.offsetY,
                 BLOCK_SIZE,
                 BLOCK_SIZE
             );
         }
-        context.fillStyle = '#444444';
-        context.fillRect(0, 0, this.canvas.width, 20);
-        context.textAlign = 'left';
-        context.font = 'bold 11px/1 Arial';
-        context.fillStyle = '#AAAAAA';
-        context.fillText('H', 5, 10);
-        context.fillText('K', 85, 10);
-        context.font = 'bold 15px/1 Arial';
-        context.fillStyle = '#DDDDDD';
-        context.fillText(Math.round(PlayerHandler.hp), 15, 10);
-        context.fillText(Math.round(PlayerHandler.kills), 95, 10);
+        this.context.fillStyle = '#444444';
+        this.context.fillRect(0, 0, this.canvas.width, 20);
+        this.context.textAlign = 'left';
+        this.context.font = 'bold 11px/1 Arial';
+        this.context.fillStyle = '#AAAAAA';
+        this.context.fillText('H', 5, 10);
+        this.context.fillText('K', 85, 10);
+        this.context.font = 'bold 15px/1 Arial';
+        this.context.fillStyle = '#DDDDDD';
+        this.context.fillText(Math.round(PlayerHandler.hp), 15, 10);
+        this.context.fillText(Math.round(PlayerHandler.kills), 95, 10);
         if (PlayerHandler.reload >= 0) {
-            context.fillStyle = 'red';
+            this.context.fillStyle = 'red';
         } else if (PlayerHandler.reload <= -180) {
-            context.fillStyle = 'green';
+            this.context.fillStyle = 'green';
         } else {
-            context.fillStyle = 'blue';
+            this.context.fillStyle = 'blue';
         }
-        context.fillRect(
+        this.context.fillRect(
             this.canvas.width - 5,
             25,
             Math.max(PlayerHandler.reload, -this.canvas.width + 5),
             15
         );
-        var cf = context.fillStyle;
-        context.textAlign = 'right';
+        var cf = this.context.fillStyle;
+        this.context.textAlign = 'right';
         PlayerHandler.actions.forEach((x, i) => {
             if (x.requiredKills <= PlayerHandler.kills) {
-                context.font = 'bold 20px/1 Helvetica';
+                this.context.font = 'bold 20px/1 Helvetica';
                 if (i == PlayerHandler.action) {
-                    context.fillStyle = 'orange';
+                    this.context.fillStyle = 'orange';
                 } else {
-                    context.fillStyle = cf;
+                    this.context.fillStyle = cf;
                 }
                 let str = x.name;
                 if (x.type) {
                     str += ' x' + PlayerHandler.inventory[x.type];
                 }
-                context.fillText(str, this.canvas.width - 5, (i + 1) * 20 + 33);
+                this.context.fillText(
+                    str,
+                    this.canvas.width - 5,
+                    (i + 1) * 20 + 33
+                );
             }
         });
     },
