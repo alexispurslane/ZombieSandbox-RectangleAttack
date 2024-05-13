@@ -418,6 +418,7 @@ export default {
                 BLOCK_SIZE
             );
         }
+
         this.context.fillStyle = '#444444';
         this.context.fillRect(0, 0, this.canvas.width, 20);
         this.context.textAlign = 'left';
