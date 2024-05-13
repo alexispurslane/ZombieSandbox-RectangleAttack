@@ -1,4 +1,4 @@
-import PlayerHandler from './playerhandler.js';
+import PlayerHandler from './PlayerHandler.js';
 
 export default {
     a: false,

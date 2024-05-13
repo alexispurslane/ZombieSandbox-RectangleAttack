@@ -1,5 +1,5 @@
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
-import PlayerHandler from './playerhandler.js';
+import PlayerHandler from './PlayerHandler.js';
 
 export default {
     init(game) {

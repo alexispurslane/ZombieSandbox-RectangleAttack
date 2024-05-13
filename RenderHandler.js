@@ -1,11 +1,11 @@
-import ControlHandler from './controlhandler.js';
-import GridHandler from './gridhandler.js';
-import PlayerHandler from './playerhandler.js';
-import EnemyHandler from './enemyhandler.js';
-import ShotHandler from './shothandler.js';
-import DustHandler from './dusthandler.js';
-import BloodHandler from './bloodhandler.js';
-import ViewHandler from './viewhandler.js';
+import ControlHandler from './ControlHandler.js';
+import GridHandler from './GridHandler.js';
+import PlayerHandler from './PlayerHandler.js';
+import EnemyHandler from './EnemyHandler.js';
+import ShotHandler from './ShotHandler.js';
+import DustHandler from './DustHandler.js';
+import BloodHandler from './BloodHandler.js';
+import ViewHandler from './ViewHandler.js';
 import {
     BLOCK_SIZE,
     HORIZON,

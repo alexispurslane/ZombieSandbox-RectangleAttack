@@ -12,7 +12,7 @@ import {
     TREE_CHANCE,
 } from './constants.js';
 import { perlin1d } from './perlin.js';
-import RenderHandler from './renderhandler.js';
+import RenderHandler from './RenderHandler.js';
 
 function addArray(a, b) {
     return a.map((e, i) => Math.round(e + b[i]));

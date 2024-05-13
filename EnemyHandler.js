@@ -1,7 +1,7 @@
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
-import GridHandler from './gridhandler.js';
-import PlayerHandler from './playerhandler.js';
-import BloodHandler from './bloodhandler.js';
+import GridHandler from './GridHandler.js';
+import PlayerHandler from './PlayerHandler.js';
+import BloodHandler from './BloodHandler.js';
 import { BLOCK_INTS } from './blocks.js';
 
 export default {

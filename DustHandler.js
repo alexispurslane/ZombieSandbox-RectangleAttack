@@ -1,6 +1,6 @@
 import { BLOCK_INTS } from './blocks.js';
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
-import GridHandler from './gridhandler.js';
+import GridHandler from './GridHandler.js';
 
 export default {
     init(game) {

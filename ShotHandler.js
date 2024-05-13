@@ -1,11 +1,11 @@
-import DustHandler from './dusthandler.js';
-import BloodHandler from './bloodhandler.js';
-import EnemyHandler from './enemyhandler.js';
-import GridHandler from './gridhandler.js';
-import RenderHandler from './renderhandler.js';
+import DustHandler from './DustHandler.js';
+import BloodHandler from './BloodHandler.js';
+import EnemyHandler from './EnemyHandler.js';
+import GridHandler from './GridHandler.js';
+import RenderHandler from './RenderHandler.js';
 import { BLOCK_INTS } from './blocks.js';
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
-import PlayerHandler from './playerhandler.js';
+import PlayerHandler from './PlayerHandler.js';
 
 export default {
     size: 5,

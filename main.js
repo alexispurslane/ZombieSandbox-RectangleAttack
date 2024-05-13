@@ -1,28 +1,16 @@
 import { BLOCK_INTS, BLOCK_COLORS } from './blocks.js';
-import ControlHandler from './controlhandler.js';
-import GridHandler from './gridhandler.js';
+import ControlHandler from './ControlHandler.js';
+import GridHandler from './GridHandler.js';
 import RenderHandler, {
     drawGameOverScreen,
     drawMenuScreen,
-} from './renderhandler.js';
-import PlayerHandler from './playerhandler.js';
-import EnemyHandler from './enemyhandler.js';
-import ShotHandler from './shothandler.js';
-import DustHandler from './dusthandler.js';
-import BloodHandler from './bloodhandler.js';
-import ViewHandler from './viewhandler.js';
-import { HORIZON, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
-
-// TODO
-// 2) Combine all build commands, make material selection window with numbers for each material
-// 3) Make multiple selection possible: If multiple materials are selected, build new material from table.
-// 4) Make fire send power iron to blocks next to it, replaceing them iwth power_iron
-// 5) Make iron power iron next to it as well, like circuitry.
-// 6) Allow crafting blocks that respond to power by lighting up, or moving and buttons
-// 7) The up moving powerd block is moved up once by being powered, so to make it move up make a line of iron next to it.
-// 8) The down moving powerd block is moved down once by being powered, so to make it move up make a line of iron next to it.
-// 9) The left moving powerd block is moved left once by being powered, so to make it move up make a line of iron next to it.
-// 10) The right moving powerd block is moved right once by being powered, so to make it move up make a line of iron next to it.
+} from './RenderHandler.js';
+import PlayerHandler from './PlayerHandler.js';
+import EnemyHandler from './EnemyHandler.js';
+import ShotHandler from './ShotHandler.js';
+import DustHandler from './DustHandler.js';
+import BloodHandler from './BloodHandler.js';
+import ViewHandler from './ViewHandler.js';
 
 var newLevelTime = -1;
 const Game = {

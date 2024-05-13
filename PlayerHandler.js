@@ -1,10 +1,10 @@
 import { BLOCK_INTS } from './blocks.js';
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
-import ShotHandler from './shothandler.js';
-import GridHandler from './gridhandler.js';
-import ViewHandler from './viewhandler.js';
-import ControlHandler from './controlhandler.js';
-import EnemyHandler from './enemyhandler.js';
+import ShotHandler from './ShotHandler.js';
+import GridHandler from './GridHandler.js';
+import ViewHandler from './ViewHandler.js';
+import ControlHandler from './ControlHandler.js';
+import EnemyHandler from './EnemyHandler.js';
 import PLAYER_ACTIONS from './actions.js';
 
 export default {
