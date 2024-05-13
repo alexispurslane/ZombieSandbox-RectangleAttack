@@ -1,7 +1,10 @@
 import { BLOCK_INTS, BLOCK_COLORS } from './blocks.js';
 import ControlHandler from './controlhandler.js';
 import GridHandler from './gridhandler.js';
-import RenderHandler from './renderhandler.js';
+import RenderHandler, {
+    drawGameOverScreen,
+    drawMenuScreen,
+} from './renderhandler.js';
 import PlayerHandler from './playerhandler.js';
 import EnemyHandler from './enemyhandler.js';
 import ShotHandler from './shothandler.js';
@@ -23,9 +26,6 @@ import { HORIZON, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
 
 var newLevelTime = -1;
 const Game = {
-    time: 0,
-    days: 0,
-    timeIncrement: 0,
     dayLength: 470 * 60,
 
     canvas: document.getElementById('canvas'),
@@ -52,15 +52,19 @@ const Game = {
     ],
 
     startGame() {
+        this.time = 0;
+        this.days = 0;
+        this.timeIncrement = 0;
         this.handlers.forEach((h) => h.init(this));
 
-        this.state = 'game';
         this.time = this.dayLength * 0.37;
 
-        setInterval(this.enterFrame.bind(this), 1000 / 60);
+        clearInterval(this.updateloop);
+        this.updateloop = setInterval(this.enterFrame.bind(this), 1000 / 60);
     },
 
     enterFrame() {
+        this.handlers.forEach((h) => h.enterFrame(this));
         if (this.state == 'menuScreen') {
             drawMenuScreen(this);
             return;
@@ -75,7 +79,6 @@ const Game = {
             this.time = 0;
             this.days++;
         }
-        this.handlers.forEach((h) => h.enterFrame(this));
 
         if (this.newLevel && this.time - newLevelTime > 10) {
             this.newLevel = false;
@@ -92,4 +95,16 @@ window.onload = function () {
     Game.startGame();
     document.querySelector('#canvas').width = window.innerWidth;
     document.querySelector('#canvas').height = window.innerHeight;
+    window.addEventListener('keydown', ControlHandler.kdelistener);
+    window.addEventListener('keyup', ControlHandler.kuelistener);
+    window.addEventListener('mousedown', ControlHandler.mdelistener);
+    window.addEventListener('mouseup', ControlHandler.muelistener);
+    window.addEventListener('mousemove', ControlHandler.mmelistener);
+
+    document.getElementById('canvas').addEventListener('contextmenu', (e) => {
+        if (e.button == 2) {
+            e.preventDefault();
+            return false;
+        }
+    });
 };

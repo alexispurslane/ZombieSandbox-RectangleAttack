@@ -1,4 +1,4 @@
-import { LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
+import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
 import GridHandler from './gridhandler.js';
 import PlayerHandler from './playerhandler.js';
 import BloodHandler from './bloodhandler.js';
@@ -17,14 +17,12 @@ export default {
         this.spawnRate = 0.03;
         this.list = [];
         this.pool = [];
-        this.list.length = 0;
         this.game = game;
         this.time = game.time;
         this.blood = BloodHandler.create.bind(BloodHandler);
     },
 
     enterFrame(game) {
-        var blockSize = this.blockSize;
         var gridList = GridHandler.list;
         var enemy, i, j, startX, startY, endX, endY, newX, newY, collide;
         i = this.game.time / this.game.dayLength;
@@ -84,17 +82,17 @@ export default {
                 enemy.boredLevel -= 0.01;
             }
             newX = enemy.x + enemy.vX;
-            startX = Math.max(((newX - enemy.width / 2) / blockSize) | 0, 0);
+            startX = Math.max(((newX - enemy.width / 2) / BLOCK_SIZE) | 0, 0);
             startY = Math.max(
-                ((enemy.y - enemy.height / 2) / blockSize) | 0,
+                ((enemy.y - enemy.height / 2) / BLOCK_SIZE) | 0,
                 0
             );
             endX = Math.min(
-                ((newX + enemy.width / 2 - 1) / blockSize) | 0,
+                ((newX + enemy.width / 2 - 1) / BLOCK_SIZE) | 0,
                 LEVEL_WIDTH - 1
             );
             endY = Math.min(
-                ((enemy.y + enemy.height / 2) / blockSize) | 0,
+                ((enemy.y + enemy.height / 2) / BLOCK_SIZE) | 0,
                 LEVEL_HEIGHT - 1
             );
             for (i = startX; i <= endX; i++) {
@@ -133,11 +131,13 @@ export default {
                             this.blood(enemy.x, enemy.y, 0, 0, 2);
                             enemy.hp--;
                         } else {
-                            if (newX < i * blockSize) {
-                                newX = i * blockSize - enemy.width / 2;
+                            if (newX < i * BLOCK_SIZE) {
+                                newX = i * BLOCK_SIZE - enemy.width / 2;
                             } else {
                                 newX =
-                                    i * blockSize + blockSize + enemy.width / 2;
+                                    i * BLOCK_SIZE +
+                                    BLOCK_SIZE +
+                                    enemy.width / 2;
                             }
                             enemy.vX = 0;
                             enemy.willJump = true;
@@ -161,14 +161,17 @@ export default {
             }
             collide = false;
             enemy.inWater = false;
-            startX = Math.max(((enemy.x - enemy.width / 2) / blockSize) | 0, 0);
-            startY = Math.max(((newY - enemy.height / 2) / blockSize) | 0, 0);
+            startX = Math.max(
+                ((enemy.x - enemy.width / 2) / BLOCK_SIZE) | 0,
+                0
+            );
+            startY = Math.max(((newY - enemy.height / 2) / BLOCK_SIZE) | 0, 0);
             endX = Math.min(
-                ((enemy.x + enemy.width / 2 - 1) / blockSize) | 0,
+                ((enemy.x + enemy.width / 2 - 1) / BLOCK_SIZE) | 0,
                 LEVEL_WIDTH - 1
             );
             endY = Math.min(
-                ((newY + enemy.height / 2) / blockSize) | 0,
+                ((newY + enemy.height / 2) / BLOCK_SIZE) | 0,
                 LEVEL_HEIGHT - 1
             );
             enemy.underWater = true;
@@ -202,13 +205,14 @@ export default {
                             enemy.inWater = true;
                             enemy.canJump--;
                         } else {
-                            if (newY < j * blockSize) {
-                                newY = j * blockSize - enemy.height / 2 - 0.001;
+                            if (newY < j * BLOCK_SIZE) {
+                                newY =
+                                    j * BLOCK_SIZE - enemy.height / 2 - 0.001;
                                 enemy.canJump--;
                             } else {
                                 newY =
-                                    j * blockSize +
-                                    blockSize +
+                                    j * BLOCK_SIZE +
+                                    BLOCK_SIZE +
                                     enemy.height / 2;
                             }
                             enemy.vY = 0;
@@ -219,8 +223,8 @@ export default {
                         enemy.vY > 0 &&
                         PlayerHandler.y < enemy.y - 1
                     ) {
-                        if (enemy.y + enemy.height * 0.5 < j * blockSize) {
-                            newY = j * blockSize - enemy.height * 0.5 - 0.001;
+                        if (enemy.y + enemy.height * 0.5 < j * BLOCK_SIZE) {
+                            newY = j * BLOCK_SIZE - enemy.height * 0.5 - 0.001;
                             collide = true;
                             enemy.vY = 0;
                             enemy.canJump--;
@@ -266,7 +270,7 @@ export default {
         if (
             PlayerHandler.x < 500 ||
             (Math.random() < 0.5 &&
-                PlayerHandler.x < LEVEL_WIDTH * this.blockSize - 800)
+                PlayerHandler.x < LEVEL_WIDTH * BLOCK_SIZE - 800)
         ) {
             enemy.x = PlayerHandler.x + 1024 + Math.random() * 200;
         } else {

@@ -13,19 +13,12 @@ export default {
     init(game) {
         this.game = game;
         this.canvas = game.canvas;
-        window.addEventListener('keydown', this.keyDownEvent.bind(this));
-        window.addEventListener('keyup', this.keyUpEvent.bind(this));
-        window.addEventListener('mousedown', this.mouseDownEvent.bind(this));
-        window.addEventListener('mouseup', this.mouseUpEvent.bind(this));
-        window.addEventListener('mousemove', this.mouseMoveEvent.bind(this));
-        document
-            .getElementById('canvas')
-            .addEventListener('contextmenu', (e) => {
-                if (e.button == 2) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
+
+        this.kdelistener = this.keyDownEvent.bind(this);
+        this.kuelistener = this.keyUpEvent.bind(this);
+        this.mdelistener = this.mouseDownEvent.bind(this);
+        this.muelistener = this.mouseUpEvent.bind(this);
+        this.mmelistener = this.mouseMoveEvent.bind(this);
     },
 
     enterFrame() {},
@@ -99,6 +92,7 @@ export default {
                 this.game.state == 'gameOverScreen')
         ) {
             this.game.startGame();
+            this.game.state = 'game';
         }
         if (e.button == 0) {
             this.mouseLeft = false;

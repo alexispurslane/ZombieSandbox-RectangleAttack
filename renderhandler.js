@@ -6,7 +6,14 @@ import ShotHandler from './shothandler.js';
 import DustHandler from './dusthandler.js';
 import BloodHandler from './bloodhandler.js';
 import ViewHandler from './viewhandler.js';
-import { BLOCK_SIZE, HORIZON, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
+import {
+    BLOCK_SIZE,
+    HORIZON,
+    LEVEL_HEIGHT,
+    LEVEL_WIDTH,
+    fontFamily,
+    titleFontFamily,
+} from './constants.js';
 import { BLOCK_INTS, BLOCK_COLORS } from './blocks.js';
 
 export default {
@@ -39,19 +46,14 @@ export default {
 
         this.drawMap();
 
-        this.context.fillStyle = '#333333';
         this.drawPlayer();
 
-        this.context.fillStyle = '#698362';
         this.drawZombies();
 
-        this.context.fillStyle = '#333333';
         this.drawShots();
 
-        this.context.fillStyle = '#555555';
         this.drawDust();
 
-        this.context.fillStyle = '#AA4444';
         this.drawBlood();
 
         // Draws water, clouds, and shadows, which need to draw over the above things.
@@ -247,6 +249,7 @@ export default {
     },
 
     drawPlayer() {
+        this.context.fillStyle = '#333333';
         let X = Math.round(
             PlayerHandler.x + this.offsetX - PlayerHandler.width / 2
         );
@@ -257,9 +260,9 @@ export default {
     },
 
     drawZombies() {
+        this.context.fillStyle = '#698362';
         for (let i = EnemyHandler.list.length - 1; i >= 0; i--) {
             let obj = EnemyHandler.list[i];
-            this.context.fillStyle = '#774444';
             this.context.fillRect(
                 Math.round(obj.x + this.offsetX - obj.width * 0.5),
                 Math.round(obj.y + this.offsetY - obj.height * 0.5),
@@ -270,6 +273,7 @@ export default {
     },
 
     drawShots() {
+        this.context.fillStyle = '#333333';
         for (let i = ShotHandler.list.length - 1; i >= 0; i--) {
             let obj = ShotHandler.list[i];
             let dist = ShotHandler.size;
@@ -283,6 +287,7 @@ export default {
     },
 
     drawDust() {
+        this.context.fillStyle = '#555555';
         for (let i = DustHandler.list.length - 1; i >= 0; i--) {
             let obj = DustHandler.list[i];
             let dist = DustHandler.size * (obj.hp / DustHandler.startHp);
@@ -296,6 +301,7 @@ export default {
     },
 
     drawBlood() {
+        this.context.fillStyle = '#AA4444';
         for (let i = BloodHandler.list.length - 1; i >= 0; i--) {
             let obj = BloodHandler.list[i];
             let dist = BloodHandler.size * (obj.hp / BloodHandler.startHp);
@@ -396,7 +402,10 @@ export default {
     },
 
     drawUI() {
-        if (PlayerHandler.actionObject.count < 0 && PlayerHandler.canBuild) {
+        if (
+            PlayerHandler.actionObject.count === undefined &&
+            PlayerHandler.canBuild
+        ) {
             this.context.fillStyle = 'rgba(0,0,0,0.2)';
             this.context.fillRect(
                 (((ControlHandler.mouseX - this.offsetX) / BLOCK_SIZE) | 0) *
@@ -457,9 +466,8 @@ export default {
     },
 };
 
-function drawGameOverScreen(game) {
+export function drawGameOverScreen(game) {
     game.state = 'gameOverScreen';
-    ControlHandler.mouseLeft = false;
     game.context.clearRect(0, 0, game.canvas.width, game.canvas.height);
     var hW = game.canvas.width * 0.5;
     var hH = game.canvas.height * 0.5;
@@ -471,7 +479,7 @@ function drawGameOverScreen(game) {
         'Zombie Sandbox: Rectangle Attack',
         hW,
         hH - 150,
-        'normal 80px/1 ' + titleFontFamily,
+        'normal 80px/1 Shlop',
         'rgba(0, 255, 10, 1)',
         'center'
     );
@@ -537,18 +545,17 @@ function drawNewLevelAlert(game) {
 var frame = 0;
 var lastFrame = 0;
 var toggle = true;
-function drawMenuScreen(game) {
+export function drawMenuScreen(game) {
     game.state = 'menuScreen';
-    ControlHandler.mouseLeft = false;
 
-    var gradient = game.context.createLinearGradient(
+    let gradient = game.context.createLinearGradient(
         0,
         0,
         0,
         game.canvas.height
     );
-    depth = ((ViewHandler.y / (LEVEL_HEIGHT * BLOCK_SIZE)) * 250) | 0;
-    dist = ((20 + 1) * 75) | 0;
+    let depth = ((ViewHandler.y / (LEVEL_HEIGHT * BLOCK_SIZE)) * 250) | 0;
+    let dist = ((20 + 1) * 75) | 0;
     gradient.addColorStop(
         0,
         'rgb(' + (77 + depth) + ',' + (117 + depth) + ',' + (179 + depth) + ')'
@@ -573,10 +580,10 @@ function drawMenuScreen(game) {
     var light = 'rgba(55,55,55,1)';
     drawText(
         game.context,
-        'Zombie Sandbox: Rectangle Attack',
+        'Zombie Sandbox: Rectangle Attack!',
         hW,
         hH - 150,
-        'normal 80px/1 ' + titleFontFamily,
+        'normal 80px/1 Shlop',
         'rgba(0, 255, 10, 1)',
         'center'
     );
@@ -620,7 +627,7 @@ function drawMenuScreen(game) {
     frame++;
 }
 
-function drawText(context, text, x, y, font, style, align, baseline) {
+export function drawText(context, text, x, y, font, style, align, baseline) {
     context.font = typeof font === 'undefined' ? 'normal 16px/1 Arial' : font;
     context.fillStyle = typeof style === 'undefined' ? '#000000' : style;
     context.textAlign = typeof align === 'undefined' ? 'center' : align;

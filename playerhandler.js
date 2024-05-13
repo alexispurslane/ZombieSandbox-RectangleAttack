@@ -4,12 +4,13 @@ import ShotHandler from './shothandler.js';
 import GridHandler from './gridhandler.js';
 import ViewHandler from './viewhandler.js';
 import ControlHandler from './controlhandler.js';
+import EnemyHandler from './enemyhandler.js';
 import PLAYER_ACTIONS from './actions.js';
 
 export default {
     init(game) {
         this.accel = 0.3;
-        this.speed = 2.5;
+        this.baseSpeed = 2.5;
         this.inventory = {};
         this.inventory[BLOCK_INTS.platform] = 300;
         this.inventory[BLOCK_INTS.wood] = 300;
@@ -53,13 +54,8 @@ export default {
         this.canBuild = false;
         this.actionObject = this.actions[this.action];
     },
+
     enterFrame() {
-        var accel = this.accel;
-        var speed = (this.speed * Math.min(11, 1 + this.kills / 200)) | 0;
-        var gridList = GridHandler.list;
-        var width = this.width;
-        var height = this.height;
-        var i, j;
         if (this.hp < this.startHp) {
             this.hp += this.regen;
             if (this.hp > this.startHp) {
@@ -69,6 +65,154 @@ export default {
         if (this.underWater) {
             this.hp -= 0.02;
         }
+
+        this.handlePhysics();
+
+        this.reload--;
+
+        if (ControlHandler.mouseLeft) {
+            this.mouseHeldActions();
+        }
+    },
+
+    handlePhysics() {
+        var accel = this.accel;
+        var speed = (this.baseSpeed * Math.min(11, 1 + this.kills / 200)) | 0;
+
+        this.handleMovement(accel, speed);
+        this.handleHorizontalCollision(accel, speed);
+
+        this.applyGravity();
+        const collide = this.handleVerticalCollision(accel, speed);
+
+        if (collide == false) {
+            this.canJump = this.jumpDelay;
+        }
+    },
+
+    applyGravity() {
+        if (this.inWater) {
+            this.vY += 0.25;
+            if (this.vY > this.fallSpeed * 0.3) {
+                this.vY = this.fallSpeed * 0.3;
+            }
+        } else {
+            this.vY += 0.4;
+            if (this.vY > this.fallSpeed) {
+                this.vY = this.fallSpeed;
+            }
+        }
+    },
+
+    handleVerticalCollision(accel, speed) {
+        var newY = this.y + this.vY;
+        var width = this.width;
+        var height = this.height;
+        var collide = false;
+        this.inWater = false;
+        var startX = Math.max(((this.x - width * 0.5) / BLOCK_SIZE) | 0, 0);
+        var startY = Math.max(((newY - height * 0.5) / BLOCK_SIZE) | 0, 0);
+        var endX = Math.min(
+            ((this.x + width * 0.5 - 1) / BLOCK_SIZE) | 0,
+            LEVEL_WIDTH - 1
+        );
+        var endY = Math.min(
+            ((newY + height * 0.5) / BLOCK_SIZE) | 0,
+            LEVEL_HEIGHT - 1
+        );
+        for (let i = startX; i <= endX; i++) {
+            for (let j = startY; j <= endY; j++) {
+                if (
+                    GridHandler.list[i][j] !== false &&
+                    GridHandler.list[i][j] != BLOCK_INTS.cloud &&
+                    GridHandler.list[i][j] != BLOCK_INTS.platform &&
+                    GridHandler.list[i][j] != BLOCK_INTS.leaves &&
+                    GridHandler.list[i][j] != BLOCK_INTS.dark_leaves
+                ) {
+                    collide = true;
+                    if (GridHandler.list[i][j] == BLOCK_INTS.water) {
+                        this.inWater = true;
+                        this.canJump--;
+                    } else {
+                        if (newY < j * BLOCK_SIZE) {
+                            newY = j * BLOCK_SIZE - height * 0.5 - 0.001;
+                            this.canJump--;
+                        } else {
+                            newY = j * BLOCK_SIZE + BLOCK_SIZE + height * 0.5;
+                        }
+                        this.vY = 0;
+                    }
+                }
+                if (
+                    GridHandler.list[i][j] == BLOCK_INTS.platform &&
+                    this.vY > 0 &&
+                    ControlHandler.s == false
+                ) {
+                    if (this.y + height * 0.5 < j * BLOCK_SIZE) {
+                        newY = j * BLOCK_SIZE - height * 0.5 - 0.001;
+                        collide = true;
+                        this.vY = 0;
+                        this.canJump--;
+                    }
+                }
+            }
+        }
+
+        this.y = newY;
+        return collide;
+    },
+
+    handleHorizontalCollision(accel, speed) {
+        var width = this.width;
+        var height = this.height;
+        var newX = this.x + this.vX;
+        var startX = Math.max(((newX - width * 0.5) / BLOCK_SIZE) | 0, 0);
+        var startY = Math.max(((this.y - height * 0.5) / BLOCK_SIZE) | 0, 0);
+        var endX = Math.min(
+            ((newX + width * 0.5 - 1) / BLOCK_SIZE) | 0,
+            LEVEL_WIDTH - 1
+        );
+        var endY = Math.min(
+            ((this.y + height * 0.5) / BLOCK_SIZE) | 0,
+            LEVEL_HEIGHT - 1
+        );
+        this.underWater = true;
+        for (let i = startX; i <= endX; i++) {
+            for (let j = startY; j <= endY; j++) {
+                if (
+                    GridHandler.list[i][j] !== false &&
+                    GridHandler.list[i][j] != BLOCK_INTS.cloud &&
+                    GridHandler.list[i][j] != BLOCK_INTS.platform &&
+                    GridHandler.list[i][j] != BLOCK_INTS.leaves &&
+                    GridHandler.list[i][j] != BLOCK_INTS.dark_leaves
+                ) {
+                    if (GridHandler.list[i][j] == BLOCK_INTS.water) {
+                        this.inWater = true;
+                        if (this.vX > speed * 0.5) {
+                            this.vX = speed * 0.5;
+                        } else if (this.vX < -speed * 0.5) {
+                            this.vX = -speed * 0.5;
+                        }
+                    } else {
+                        if (newX < i * BLOCK_SIZE) {
+                            newX = i * BLOCK_SIZE - width * 0.5;
+                        } else {
+                            newX = i * BLOCK_SIZE + BLOCK_SIZE + width * 0.5;
+                        }
+                        this.vX = 0;
+                    }
+                }
+                this.underWater =
+                    this.underWater &&
+                    GridHandler.list[i][j] != false &&
+                    GridHandler.list[i][j] != BLOCK_INTS.cloud;
+            }
+        }
+        this.x = newX;
+    },
+
+    handleMovement(accel, speed) {
+        // Handle movement
         if (
             this.canJump < 1 &&
             ControlHandler.space &&
@@ -101,119 +245,10 @@ export default {
                 this.vX = 0;
             }
         }
-        var newX = this.x + this.vX;
-        var startX = Math.max(((newX - width * 0.5) / BLOCK_SIZE) | 0, 0);
-        var startY = Math.max(((this.y - height * 0.5) / BLOCK_SIZE) | 0, 0);
-        var endX = Math.min(
-            ((newX + width * 0.5 - 1) / BLOCK_SIZE) | 0,
-            LEVEL_WIDTH - 1
-        );
-        var endY = Math.min(
-            ((this.y + height * 0.5) / BLOCK_SIZE) | 0,
-            LEVEL_HEIGHT - 1
-        );
-        this.underWater = true;
-        for (i = startX; i <= endX; i++) {
-            for (j = startY; j <= endY; j++) {
-                if (
-                    gridList[i][j] !== false &&
-                    gridList[i][j] != BLOCK_INTS.cloud &&
-                    gridList[i][j] != BLOCK_INTS.platform &&
-                    gridList[i][j] != BLOCK_INTS.leaves &&
-                    gridList[i][j] != BLOCK_INTS.dark_leaves
-                ) {
-                    if (gridList[i][j] == BLOCK_INTS.water) {
-                        this.inWater = true;
-                        if (this.vX > speed * 0.5) {
-                            this.vX = speed * 0.5;
-                        } else if (this.vX < -speed * 0.5) {
-                            this.vX = -speed * 0.5;
-                        }
-                    } else {
-                        if (newX < i * BLOCK_SIZE) {
-                            newX = i * BLOCK_SIZE - width * 0.5;
-                        } else {
-                            newX = i * BLOCK_SIZE + BLOCK_SIZE + width * 0.5;
-                        }
-                        this.vX = 0;
-                    }
-                }
-                this.underWater =
-                    this.underWater &&
-                    gridList[i][j] != false &&
-                    gridList[i][j] != BLOCK_INTS.cloud;
-            }
-        }
-        this.x = newX;
-        var newY;
-        if (this.inWater) {
-            this.vY += 0.25;
-            if (this.vY > this.fallSpeed * 0.3) {
-                this.vY = this.fallSpeed * 0.3;
-            }
-            newY = this.y + this.vY * 0.6;
-        } else {
-            this.vY += 0.4;
-            if (this.vY > this.fallSpeed) {
-                this.vY = this.fallSpeed;
-            }
-            newY = this.y + this.vY;
-        }
-        var collide = false;
-        this.inWater = false;
-        startX = Math.max(((this.x - width * 0.5) / BLOCK_SIZE) | 0, 0);
-        startY = Math.max(((newY - height * 0.5) / BLOCK_SIZE) | 0, 0);
-        endX = Math.min(
-            ((this.x + width * 0.5 - 1) / BLOCK_SIZE) | 0,
-            LEVEL_WIDTH - 1
-        );
-        endY = Math.min(
-            ((newY + height * 0.5) / BLOCK_SIZE) | 0,
-            LEVEL_HEIGHT - 1
-        );
-        for (i = startX; i <= endX; i++) {
-            for (j = startY; j <= endY; j++) {
-                if (
-                    gridList[i][j] !== false &&
-                    gridList[i][j] != BLOCK_INTS.cloud &&
-                    gridList[i][j] != BLOCK_INTS.platform &&
-                    gridList[i][j] != BLOCK_INTS.leaves &&
-                    gridList[i][j] != BLOCK_INTS.dark_leaves
-                ) {
-                    collide = true;
-                    if (gridList[i][j] == BLOCK_INTS.water) {
-                        this.inWater = true;
-                        this.canJump--;
-                    } else {
-                        if (newY < j * BLOCK_SIZE) {
-                            newY = j * BLOCK_SIZE - height * 0.5 - 0.001;
-                            this.canJump--;
-                        } else {
-                            newY = j * BLOCK_SIZE + BLOCK_SIZE + height * 0.5;
-                        }
-                        this.vY = 0;
-                    }
-                }
-                if (
-                    gridList[i][j] == BLOCK_INTS.platform &&
-                    this.vY > 0 &&
-                    ControlHandler.s == false
-                ) {
-                    if (this.y + height * 0.5 < j * BLOCK_SIZE) {
-                        newY = j * BLOCK_SIZE - height * 0.5 - 0.001;
-                        collide = true;
-                        this.vY = 0;
-                        this.canJump--;
-                    }
-                }
-            }
-        }
-        this.y = newY;
-        if (collide == false) {
-            this.canJump = this.jumpDelay;
-        }
-        this.reload--;
-        if (this.actionObject.count < 0) {
+    },
+
+    mouseHeldActions() {
+        if (this.actionObject.count === undefined) {
             var offsetX = ViewHandler.x - this.halfWidth;
             var offsetY = ViewHandler.y - this.halfHeight;
             var X = ControlHandler.mouseX + offsetX;
@@ -223,24 +258,23 @@ export default {
             );
             if (dist < 250) {
                 this.canBuild = true;
-                if (this.reload <= 0 && ControlHandler.mouseLeft) {
+                if (this.reload <= 0) {
                     X = (X / BLOCK_SIZE) | 0;
                     Y = (Y / BLOCK_SIZE) | 0;
                     if (X > 0 && X < LEVEL_WIDTH && Y > 0 && Y < LEVEL_HEIGHT) {
-                        if (this.actionObject.count == -1) {
+                        if (this.actionObject.build === true) {
                             if (
-                                gridList[X][Y] == false ||
-                                gridList[X][Y] == BLOCK_INTS.water ||
-                                gridList[X][Y] == BLOCK_INTS.cloud
+                                GridHandler.list[X][Y] == false ||
+                                GridHandler.list[X][Y] == BLOCK_INTS.water ||
+                                GridHandler.list[X][Y] == BLOCK_INTS.cloud
                             ) {
-                                collide = false;
-                                let enemy;
+                                let collide = false;
                                 for (
-                                    let i = this.enemyHandler.list.length - 1;
+                                    let i = EnemyHandler.list.length - 1;
                                     i >= 0;
                                     i--
                                 ) {
-                                    enemy = this.enemyHandler.list[i];
+                                    let enemy = EnemyHandler.list[i];
                                     if (
                                         enemy.x + enemy.width * 0.5 >
                                             X * BLOCK_SIZE &&
@@ -271,17 +305,18 @@ export default {
                                     collide == false &&
                                     this.inventory[this.actionObject.type] > 0
                                 ) {
-                                    gridList[X][Y] = this.actionObject.type;
+                                    GridHandler.list[X][Y] =
+                                        this.actionObject.type;
                                     this.inventory[this.actionObject.type]--;
                                 }
                             }
                         }
-                        if (this.actionObject.count == -2) {
-                            if (gridList[X][Y] != BLOCK_INTS.bedrock) {
-                                let block = gridList[X][Y];
+                        if (this.actionObject.remove === true) {
+                            if (GridHandler.list[X][Y] != BLOCK_INTS.bedrock) {
+                                let block = GridHandler.list[X][Y];
                                 if (block == BLOCK_INTS.fire)
                                     block = BLOCK_INTS.wood;
-                                gridList[X][Y] = false;
+                                GridHandler.list[X][Y] = false;
                                 this.inventory[block]++;
                                 this.reload = this.blockDifficulty[block];
                             }
@@ -315,6 +350,7 @@ export default {
             }
         }
     },
+
     hotKey(keyCode) {
         if (keyCode == 48) {
             keyCode = 58;
@@ -328,22 +364,24 @@ export default {
             }
         }
     },
+
     wheel(delta) {
-        var dist = 0;
-        for (; dist < this.actions.length; dist++) {
-            if (this.actions[dist].requiredKills > this.kills) break;
+        console.log(delta);
+        let maxActionCount = 0;
+        for (; maxActionCount < this.actions.length; maxActionCount++) {
+            if (this.actions[maxActionCount].requiredKills > this.kills) break;
         }
-        if (delta > 0) {
-            if (this.action <= 0) {
-                this.action = dist - 1;
-            } else {
-                this.action--;
-            }
-        } else {
-            if (this.action >= dist - 1) {
+        if (delta < 0) {
+            if (this.action >= maxActionCount - 1) {
                 this.action = 0;
             } else {
                 this.action++;
+            }
+        } else {
+            if (this.action == 0) {
+                this.action = maxActionCount - 1;
+            } else {
+                this.action--;
             }
         }
         this.actionObject = this.actions[this.action];
