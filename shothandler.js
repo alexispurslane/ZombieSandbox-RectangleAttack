@@ -2,6 +2,7 @@ import DustHandler from './dusthandler.js';
 import BloodHandler from './bloodhandler.js';
 import EnemyHandler from './enemyhandler.js';
 import GridHandler from './gridhandler.js';
+import RenderHandler from './renderhandler.js';
 import { BLOCK_INTS } from './blocks.js';
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
 

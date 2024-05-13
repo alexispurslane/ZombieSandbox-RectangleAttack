@@ -276,7 +276,9 @@ export default {
         } else {
             enemy.x = PlayerHandler.x - 1024 - Math.random() * 200;
         }
-        enemy.y = 50;
+        enemy.y =
+            GridHandler.heightmap[Math.round(enemy.x / BLOCK_SIZE)] *
+            BLOCK_SIZE;
         enemy.vX = 0;
         enemy.vY = 10;
         enemy.lastHit = 'shot';

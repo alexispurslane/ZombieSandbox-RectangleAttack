@@ -10,7 +10,7 @@ import PLAYER_ACTIONS from './actions.js';
 export default {
     init(game) {
         this.accel = 0.3;
-        this.baseSpeed = 2.5;
+        this.baseSpeed = 8.5;
         this.inventory = {};
         this.inventory[BLOCK_INTS.platform] = 300;
         this.inventory[BLOCK_INTS.wood] = 300;
