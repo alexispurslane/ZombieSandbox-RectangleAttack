@@ -1,18 +1,17 @@
-import ControlHandler from './controlhandler.js';
-import GridHandler from './gridhandler.js';
-import PlayerHandler from './playerhandler.js';
-import EnemyHandler from './enemyhandler.js';
-import ShotHandler from './shothandler.js';
-import DustHandler from './dusthandler.js';
-import BloodHandler from './bloodhandler.js';
-import ViewHandler from './viewhandler.js';
+import ControlHandler from './ControlHandler.js';
+import GridHandler from './GridHandler.js';
+import PlayerHandler from './PlayerHandler.js';
+import EnemyHandler from './EnemyHandler.js';
+import ShotHandler from './ShotHandler.js';
+import DustHandler from './DustHandler.js';
+import BloodHandler from './BloodHandler.js';
+import ViewHandler from './ViewHandler.js';
 import {
     BLOCK_SIZE,
     HORIZON,
     LEVEL_HEIGHT,
     LEVEL_WIDTH,
     fontFamily,
-    titleFontFamily,
 } from './constants.js';
 import { BLOCK_INTS, BLOCK_COLORS } from './blocks.js';
 
@@ -75,7 +74,10 @@ export default {
     drawBackground(time) {
         let i = Math.sin(time);
         let j = Math.cos(time);
-        let depth = ((ViewHandler.y / (LEVEL_HEIGHT * BLOCK_SIZE)) * 250) | 0;
+        let depth =
+            (LEVEL_HEIGHT -
+                (ViewHandler.y / (LEVEL_HEIGHT * BLOCK_SIZE)) * 250) |
+            0;
         let dist = ((j + 1) * 75) | 0;
         var gradient = this.context.createLinearGradient(
             0,
@@ -143,106 +145,90 @@ export default {
 
     drawMap() {
         for (let i = this.startX; i < this.endX; i++) {
-            for (let j = this.startY; j < this.endY; j++) {
+            let depth = 0;
+            for (let j = 0; j < this.endY; j++) {
                 let obj = GridHandler.list[i][j];
-                if (
-                    obj !== false &&
-                    obj != BLOCK_INTS.water &&
-                    obj != BLOCK_INTS.cloud
-                ) {
+
+                if (j > this.startY) {
                     let X = Math.round(i * BLOCK_SIZE + this.offsetX);
                     let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
-                    if (obj == BLOCK_INTS.platform) {
-                        this.context.fillStyle = BLOCK_COLORS[obj];
-                        this.context.fillRect(
-                            X,
-                            Y,
-                            BLOCK_SIZE,
-                            BLOCK_SIZE * 0.25
-                        );
-                        this.context.fillRect(
-                            X,
-                            Y + BLOCK_SIZE * 0.5,
-                            BLOCK_SIZE,
-                            BLOCK_SIZE * 0.25
-                        );
-                    } else if (obj == BLOCK_INTS.fire) {
-                        var colors = [
-                            '#E25822',
-                            '#E27822',
-                            '#E29822',
-                            '#E2B822',
-                            '#E23822',
-                            '#E2222C',
-                            '#E2224C',
-                        ];
-                        let color =
-                            colors[
-                                Math.round(Math.random() * colors.length) - 1
+                    if (
+                        obj !== false &&
+                        obj != BLOCK_INTS.water &&
+                        obj != BLOCK_INTS.cloud
+                    ) {
+                        if (obj == BLOCK_INTS.platform) {
+                            this.context.fillStyle = BLOCK_COLORS[obj];
+                            this.context.fillRect(
+                                X,
+                                Y,
+                                BLOCK_SIZE,
+                                BLOCK_SIZE * 0.25
+                            );
+                            this.context.fillRect(
+                                X,
+                                Y + BLOCK_SIZE * 0.5,
+                                BLOCK_SIZE,
+                                BLOCK_SIZE * 0.25
+                            );
+                        } else if (obj == BLOCK_INTS.fire) {
+                            var colors = [
+                                '#E25822',
+                                '#E27822',
+                                '#E29822',
+                                '#E2B822',
+                                '#E23822',
+                                '#E2222C',
+                                '#E2224C',
                             ];
+                            let color =
+                                colors[
+                                    Math.round(Math.random() * colors.length) -
+                                        1
+                                ];
 
-                        this.context.shadowColor = color;
-                        this.context.shadowBlur = Math.round(
-                            Math.random() * 70 + 3
-                        );
-                        this.context.fillStyle = color;
-                        this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
-                        this.context.shadowColor = '';
-                        this.context.shadowBlur = 0;
-                        this.context.shadowOffsetX = 0;
-                        this.context.shadowOffsetY = 0;
-                    } else if (obj == BLOCK_INTS.leaves) {
-                        this.context.fillStyle = BLOCK_COLORS[obj];
-                        this.context.beginPath();
-                        this.context.moveTo(
-                            X + BLOCK_SIZE * 5,
-                            Y + BLOCK_SIZE * 2
-                        );
-                        this.context.lineTo(
-                            X + BLOCK_SIZE / 2,
-                            Y - BLOCK_SIZE * 5
-                        );
-                        this.context.lineTo(
-                            X - BLOCK_SIZE * 4,
-                            Y + BLOCK_SIZE * 2
-                        );
-                        this.context.fill();
-                    } else if (obj == BLOCK_INTS.dark_leaves) {
-                        this.context.fillStyle = BLOCK_COLORS[obj];
-                        this.context.beginPath();
-                        this.context.moveTo(
-                            X + BLOCK_SIZE * 5,
-                            Y + BLOCK_SIZE * 2
-                        );
-                        this.context.lineTo(
-                            X + BLOCK_SIZE * 5,
-                            Y - BLOCK_SIZE * 2
-                        );
-                        this.context.lineTo(
-                            X - BLOCK_SIZE * 4,
-                            Y - BLOCK_SIZE * 2
-                        );
-                        this.context.lineTo(
-                            X - BLOCK_SIZE * 4,
-                            Y + BLOCK_SIZE * 2
-                        );
-                        this.context.fill();
-                    } else {
-                        this.context.fillStyle = BLOCK_COLORS[obj];
-                        this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                            this.context.fillStyle = color;
+                            this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                        } else {
+                            this.context.fillStyle = BLOCK_COLORS[obj];
+                            this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                        }
+                    }
+                    if (
+                        obj === false &&
+                        j == HORIZON &&
+                        GridHandler.list[i][j - 1] === false
+                    ) {
+                        this.context.fillStyle = 'rbga(0,0,0,0.2)';
+                        this.context.fillRect(X + 1, Y, 2, 2);
+                        this.context.fillRect(X + 5, Y, 3, 3);
+                        this.context.fillRect(X + 11, Y, 2, 2);
                     }
                 }
                 if (
-                    obj === false &&
-                    j == HORIZON &&
-                    GridHandler.list[i][j - 1] === false
+                    obj != BLOCK_INTS.bedrock &&
+                    obj != BLOCK_INTS.cloud &&
+                    obj != false &&
+                    obj != BLOCK_INTS.fire
                 ) {
-                    let X = Math.round(i * BLOCK_SIZE + this.offsetX);
-                    let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
-                    this.context.fillStyle = 'rbga(0,0,0,0.2)';
-                    this.context.fillRect(X + 1, Y, 2, 2);
-                    this.context.fillRect(X + 5, Y, 3, 3);
-                    this.context.fillRect(X + 11, Y, 2, 2);
+                    let X = i * BLOCK_SIZE;
+                    let Y = j * BLOCK_SIZE;
+                    X = Math.round(X + this.offsetX);
+                    Y = Math.round(Y + this.offsetY);
+                    this.context.fillStyle =
+                        'rgba(0,0,0,' + depth * 0.02 * 0.4 + ')';
+                    this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                    if (obj == BLOCK_INTS.platform) {
+                        depth += 0.2;
+                    } else if (obj == BLOCK_INTS.water) {
+                        depth += 0.5;
+                    } else if (obj == BLOCK_INTS.wood) {
+                        depth += 0.8;
+                    } else if (obj == BLOCK_INTS.fire) {
+                        depth -= 10;
+                    } else {
+                        depth += 1;
+                    }
                 }
             }
         }
@@ -348,57 +334,6 @@ export default {
                 }
             }
         }
-
-        for (let i = this.startX; i < this.endX; i++) {
-            var depth = 0;
-            for (let j = 0; j < this.endY; j++) {
-                let obj = GridHandler.list[i][j];
-                if (
-                    (obj != BLOCK_INTS.bedrock &&
-                        obj != BLOCK_INTS.cloud &&
-                        obj != false &&
-                        obj != BLOCK_INTS.fire) ||
-                    j >= HORIZON
-                ) {
-                    let X = i * BLOCK_SIZE;
-                    let Y = j * BLOCK_SIZE;
-                    let dists = this.lights.map((l) => {
-                        let lX = l.x * BLOCK_SIZE;
-                        let lY = l.y * BLOCK_SIZE;
-                        return (
-                            Math.pow(lX - X - BLOCK_SIZE / 2, 2) +
-                            Math.pow(lY - Y - BLOCK_SIZE / 2, 2)
-                        );
-                    });
-                    dists.push(
-                        Math.pow(PlayerHandler.x - X - BLOCK_SIZE / 2, 2) +
-                            Math.pow(PlayerHandler.y - Y - BLOCK_SIZE / 2, 2)
-                    );
-
-                    let dist = Math.min(...dists);
-                    X = Math.round(X + this.offsetX);
-                    Y = Math.round(Y + this.offsetY);
-                    this.context.fillStyle =
-                        'rgba(0,0,0,' +
-                        depth *
-                            0.02 *
-                            Math.max(Math.min(dist / 16000, 1), 0.4) +
-                        ')';
-                    this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
-                    if (obj == BLOCK_INTS.platform) {
-                        depth += 0.2;
-                    } else if (obj == BLOCK_INTS.water) {
-                        depth += 0.5;
-                    } else if (obj == BLOCK_INTS.wood) {
-                        depth += 0.8;
-                    } else if (obj == BLOCK_INTS.fire) {
-                        depth -= 10;
-                    } else {
-                        depth += 1;
-                    }
-                }
-            }
-        }
     },
 
     drawUI() {
@@ -438,9 +373,9 @@ export default {
             this.context.fillStyle = 'blue';
         }
         this.context.fillRect(
-            this.canvas.width - 5,
+            5,
             25,
-            Math.max(PlayerHandler.reload, -this.canvas.width + 5),
+            Math.max(0, Math.min(PlayerHandler.reload, this.canvas.width - 5)),
             15
         );
         var cf = this.context.fillStyle;
@@ -464,6 +399,76 @@ export default {
                 );
             }
         });
+
+        if (PlayerHandler.actionObject.count !== undefined) {
+            // Draw aiming laser
+            this.context.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+            this.context.lineWidth = PlayerHandler.actionObject.count;
+            this.context.beginPath();
+            this.context.moveTo(
+                PlayerHandler.x + this.offsetX,
+                PlayerHandler.y + this.offsetY
+            );
+            let dX = ControlHandler.mouseX - (PlayerHandler.x + this.offsetX),
+                dY = ControlHandler.mouseY - (PlayerHandler.y + this.offsetY);
+            let magnitude = Math.abs(
+                Math.sqrt(Math.pow(dX, 2) + Math.pow(dY, 2))
+            );
+            dX = dX / magnitude;
+            dY = dY / magnitude;
+            this.context.lineTo(
+                ControlHandler.mouseX - dX * 11,
+                ControlHandler.mouseY - dY * 11
+            );
+            this.context.stroke();
+
+            // Draw targeting reticle
+            this.context.strokeStyle = 'gray';
+            this.context.lineWidth = 3;
+            this.context.beginPath();
+            this.context.arc(
+                ControlHandler.mouseX,
+                ControlHandler.mouseY,
+                10,
+                0,
+                2 * Math.PI
+            );
+            // Draw target circle lines
+            this.context.moveTo(
+                ControlHandler.mouseX - 5,
+                ControlHandler.mouseY - 5
+            );
+            this.context.lineTo(
+                ControlHandler.mouseX - 13,
+                ControlHandler.mouseY - 13
+            );
+
+            this.context.moveTo(
+                ControlHandler.mouseX + 5,
+                ControlHandler.mouseY - 5
+            );
+            this.context.lineTo(
+                ControlHandler.mouseX + 13,
+                ControlHandler.mouseY - 13
+            );
+            this.context.moveTo(
+                ControlHandler.mouseX - 5,
+                ControlHandler.mouseY + 5
+            );
+            this.context.lineTo(
+                ControlHandler.mouseX - 13,
+                ControlHandler.mouseY + 13
+            );
+            this.context.moveTo(
+                ControlHandler.mouseX + 5,
+                ControlHandler.mouseY + 5
+            );
+            this.context.lineTo(
+                ControlHandler.mouseX + 13,
+                ControlHandler.mouseY + 13
+            );
+            this.context.stroke();
+        }
     },
 };
 
@@ -519,7 +524,7 @@ function drawNewLevelAlert(game) {
         'New Level: ' + (game.PlayerHandler.kills % 50),
         10,
         20,
-        'normal 30px/1 ' + titleFontFamily,
+        'normal 30px/1 Shlop',
         dark,
         'left'
     );
@@ -622,7 +627,7 @@ export function drawMenuScreen(game) {
         'Beware the night! Kill to advance!',
         hW,
         hH + 30,
-        'normal 15px/1 ' + titleFontFamily,
+        'normal 15px/1 Shlop',
         medium
     );
     frame++;

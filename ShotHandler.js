@@ -1,9 +1,11 @@
-import DustHandler from './dusthandler.js';
-import BloodHandler from './bloodhandler.js';
-import EnemyHandler from './enemyhandler.js';
-import GridHandler from './gridhandler.js';
+import DustHandler from './DustHandler.js';
+import BloodHandler from './BloodHandler.js';
+import EnemyHandler from './EnemyHandler.js';
+import GridHandler from './GridHandler.js';
+import RenderHandler from './RenderHandler.js';
 import { BLOCK_INTS } from './blocks.js';
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
+import PlayerHandler from './PlayerHandler.js';
 
 export default {
     size: 5,
@@ -67,7 +69,7 @@ export default {
                 } else if (
                     gridList[X][Y] !== false &&
                     gridList[X][Y] != BLOCK_INTS.cloud &&
-                    gridList[X][Y] != BLOCK_INTS.platform &&
+                    gridList[X][Y] != BLOCK_INTS.leaves &&
                     gridList[X][Y] != BLOCK_INTS.fire
                 ) {
                     var g = gridList[X][Y];
@@ -83,6 +85,7 @@ export default {
                         (shot.destroy.indexOf(g) > -1 || stonePenetration) &&
                         g != BLOCK_INTS.bedrock
                     ) {
+                        PlayerHandler.inventory[gridList[X][Y]]++;
                         gridList[X][Y] = false;
                     }
                     if (shot.flammable && g == BLOCK_INTS.wood) {

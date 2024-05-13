@@ -1,7 +1,7 @@
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
-import GridHandler from './gridhandler.js';
-import PlayerHandler from './playerhandler.js';
-import BloodHandler from './bloodhandler.js';
+import GridHandler from './GridHandler.js';
+import PlayerHandler from './PlayerHandler.js';
+import BloodHandler from './BloodHandler.js';
 import { BLOCK_INTS } from './blocks.js';
 
 export default {
@@ -276,7 +276,9 @@ export default {
         } else {
             enemy.x = PlayerHandler.x - 1024 - Math.random() * 200;
         }
-        enemy.y = 50;
+        enemy.y =
+            GridHandler.heightmap[Math.round(enemy.x / BLOCK_SIZE)] *
+            BLOCK_SIZE;
         enemy.vX = 0;
         enemy.vY = 10;
         enemy.lastHit = 'shot';

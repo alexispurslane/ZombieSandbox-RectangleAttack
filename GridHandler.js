@@ -1,6 +1,22 @@
 import { BLOCK_INTS } from './blocks.js';
-import { HORIZON, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
-import RenderHandler from './renderhandler.js';
+import {
+    BASE_AMPLITUDE,
+    BASE_WAVELENGTH,
+    CAVE_PERLIN_CUTOFF,
+    CLOUD_PERLIN_CUTOFF,
+    HORIZON,
+    ISLAND_PERLIN_CUTOFF,
+    LEVEL_HEIGHT,
+    LEVEL_OCTAVES,
+    LEVEL_WIDTH,
+    TREE_CHANCE,
+} from './constants.js';
+import { perlin1d } from './perlin.js';
+import RenderHandler from './RenderHandler.js';
+
+function addArray(a, b) {
+    return a.map((e, i) => Math.round(e + b[i]));
+}
 
 export default {
     init(game) {
@@ -8,122 +24,95 @@ export default {
         this.waterList = [];
         this.fireList = [];
         this.toggle = 0;
-        for (var i = 0; i < LEVEL_WIDTH; i++) {
-            this.list[i] = [];
-            for (var j = 0; j < LEVEL_HEIGHT; j++) {
-                this.list[i][j] = false;
-            }
-        }
+
         this.createLevel();
     },
 
     createLevel() {
-        var flatness = 0.75;
-        var list = this.list;
-        var waterList = this.waterList;
-        var height = HORIZON;
-        var heights = [];
-
-        for (let x = 0; x < LEVEL_WIDTH / 20; x++) {
-            let randX = (Math.random() * (LEVEL_WIDTH - 20) + 10) | 0;
-            let randY = (Math.random() * (LEVEL_HEIGHT * 0.5 - 20) + 8) | 0;
-            for (let y = 0; y < 25; y++) {
-                for (let k = 0; k < 9; k++) {
-                    let X = (randX + Math.random() * k * 2 - k) | 0;
-                    let Y = (randY + Math.random() * k - k / 2) | 0;
-                    list[X][Y] = BLOCK_INTS.cloud;
-                }
-            }
+        let simplex = new SimplexNoise();
+        this.heightmap = perlin1d(LEVEL_WIDTH, BASE_AMPLITUDE, BASE_WAVELENGTH);
+        for (let octave = 1; octave <= LEVEL_OCTAVES; octave++) {
+            this.heightmap = addArray(
+                this.heightmap,
+                perlin1d(
+                    LEVEL_WIDTH,
+                    BASE_AMPLITUDE / Math.pow(2, octave),
+                    BASE_WAVELENGTH / Math.pow(2, octave)
+                )
+            );
         }
+        let rocknoise = perlin1d(
+            LEVEL_WIDTH,
+            BASE_AMPLITUDE / 2,
+            BASE_WAVELENGTH
+        );
 
-        for (let x = 0; x < LEVEL_WIDTH; x++) {
-            if (x == 0 || x == LEVEL_WIDTH - 1) {
-                for (let y = 0; y < LEVEL_HEIGHT; y++) {
-                    list[x][y] = BLOCK_INTS.bedrock;
+        for (let i = 0; i < LEVEL_WIDTH; i++) {
+            this.list[i] = [];
+            for (let j = 0; j < LEVEL_HEIGHT; j++) {
+                if (
+                    i == 0 ||
+                    j == 0 ||
+                    i == LEVEL_WIDTH - 1 ||
+                    j == LEVEL_HEIGHT - 1
+                ) {
+                    this.list[i][j] = BLOCK_INTS.bedrock;
+                    continue;
                 }
-                continue;
-            }
 
-            list[x][0] = BLOCK_INTS.bedrock;
-            list[x][LEVEL_HEIGHT - 1] = BLOCK_INTS.bedrock;
-
-            if (height > HORIZON) {
-                for (let y = HORIZON; y < height; y++) {
-                    list[x][y] = BLOCK_INTS.water;
-                    waterList.push({ x, y });
-                }
-            }
-
-            for (let y = height; y < LEVEL_HEIGHT - 1; y++) {
-                if (y > height + Math.random() * 30 + 20) {
-                    list[x][y] = BLOCK_INTS.iron;
-                } else if (y > height + Math.random() * 8 + 4) {
-                    list[x][y] = BLOCK_INTS.stone;
+                if (j > LEVEL_HEIGHT - rocknoise[i]) {
+                    this.list[i][j] = BLOCK_INTS.stone;
+                } else if (j > LEVEL_HEIGHT - this.heightmap[i]) {
+                    this.list[i][j] = BLOCK_INTS.dirt;
+                } else if (j >= HORIZON) {
+                    this.list[i][j] = BLOCK_INTS.water;
+                    this.waterList.push({ x: i, y: j });
                 } else {
-                    list[x][y] = BLOCK_INTS.dirt;
+                    this.list[i][j] = false;
+                }
+                let overlay = simplex.noise2D(i * 0.03, j * 0.03);
+                if (j <= HORIZON * 0.5 && overlay >= ISLAND_PERLIN_CUTOFF) {
+                    this.list[i][j] = BLOCK_INTS.iron;
+                } else if (
+                    j <= HORIZON * 0.8 &&
+                    overlay >= CLOUD_PERLIN_CUTOFF &&
+                    this.list[i][j] === false
+                ) {
+                    this.list[i][j] = BLOCK_INTS.cloud;
+                } else if (
+                    j >= HORIZON * 1.2 &&
+                    overlay >= CAVE_PERLIN_CUTOFF
+                ) {
+                    this.list[i][j] = false;
                 }
             }
-            heights.push(height);
-            if (Math.random() < flatness) {
-                height += ((Math.random() * 3) | 0) - 1;
-            }
+        }
+
+        for (let i = 0; i < LEVEL_WIDTH; i++) {
+            let terrainDistFromTop = LEVEL_HEIGHT - this.heightmap[i];
+            let r = Math.random();
             if (
-                height > HORIZON &&
-                x > LEVEL_WIDTH / 2 - 20 &&
-                x < LEVEL_WIDTH / 2
+                terrainDistFromTop < HORIZON - 3 &&
+                r <= TREE_CHANCE * (terrainDistFromTop / LEVEL_HEIGHT)
             ) {
-                height--;
-            }
-            if (height > LEVEL_HEIGHT - 1) {
-                height--;
-            } else if (height < 1) {
-                height++;
-            }
-        }
-
-        for (let x = 0; x < LEVEL_WIDTH / 25; x++) {
-            let randX = (Math.random() * (LEVEL_WIDTH - 20) + 10) | 0;
-            let randY =
-                (HORIZON + Math.random() * (LEVEL_HEIGHT * 0.5 - 20) + 8) | 0;
-            for (let y = 0; y < 25; y++) {
-                for (let k = (Math.random() * 8) | 0; k >= 0; k--) {
-                    let X = (randX + Math.random() * k * 2 - k) | 0;
-                    let Y = (randY + Math.random() * k - k / 2) | 0;
-                    list[X][Y] = false;
+                let treeHeight = (Math.random() * 6 + 4) | 0;
+                for (let j = 0; j < treeHeight; j++) {
+                    this.list[i][terrainDistFromTop - j] = BLOCK_INTS.wood;
                 }
-            }
-        }
-        for (let x = 0; x < LEVEL_WIDTH / 25; x++) {
-            var randX = (Math.random() * (LEVEL_WIDTH - 20) + 10) | 0;
-            var randY =
-                (HORIZON + Math.random() * (LEVEL_HEIGHT * 0.5 - 20) + 8) | 0;
-            for (let y = 0; y < 25; y++) {
-                for (let k = (Math.random() * 8) | 0; k >= 0; k--) {
-                    let X = (randX + Math.random() * k * 2 - k) | 0;
-                    let Y = (randY + Math.random() * k - k / 2) | 0;
-                    list[X][Y] = BLOCK_INTS.water;
-                    waterList.push({ x: X, y: Y });
+                for (let row = 0; row < treeHeight; row++) {
+                    let rowWidth = Math.ceil((treeHeight - row) / 3) * 3 + 1;
+                    for (
+                        let i1 = i - Math.floor(rowWidth / 2);
+                        i1 < i + Math.floor(rowWidth / 2);
+                        i1++
+                    ) {
+                        if (i1 < LEVEL_WIDTH) {
+                            this.list[i1][
+                                terrainDistFromTop - treeHeight - row
+                            ] = BLOCK_INTS.leaves;
+                        }
+                    }
                 }
-            }
-        }
-
-        for (let x = 0; x < LEVEL_WIDTH / 50; x++) {
-            var randX = (Math.random() * (LEVEL_WIDTH - 20) + 20) | 0;
-            var ground = heights[randX];
-            var height = (Math.random() * 10 + 5) | 0;
-            for (var i = 0; i < height; i++) {
-                list[randX][ground - i] = BLOCK_INTS.wood;
-            }
-            let leafType = Math.round(Math.random() * 1);
-            if (leafType == 0) leafType = BLOCK_INTS.leaves;
-            else leafType = BLOCK_INTS.dark_leaves;
-
-            let width = Math.round(Math.random() * 5) + 1;
-            let center = ((width * 3) / 2) | 0;
-            for (var j = 1; j <= width; j++) {
-                var xrow = list[randX - center + j * 3];
-                if (xrow != undefined && xrow != null)
-                    xrow[ground - height] = leafType;
             }
         }
     },
@@ -214,10 +203,7 @@ export default {
                     y: water.y + 1,
                 };
             }
-            if (
-                water.y > LEVEL_HEIGHT / 2 &&
-                list[water.x][water.y - 1] === false
-            ) {
+            if (water.y > HORIZON && list[water.x][water.y - 1] === false) {
                 list[water.x][water.y - 1] = BLOCK_INTS.water;
                 this.waterList[this.waterList.length] = {
                     x: water.x,
