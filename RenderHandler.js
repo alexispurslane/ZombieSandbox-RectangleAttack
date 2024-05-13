@@ -373,9 +373,9 @@ export default {
             this.context.fillStyle = 'blue';
         }
         this.context.fillRect(
-            this.canvas.width - 5,
+            5,
             25,
-            Math.max(PlayerHandler.reload, -this.canvas.width + 5),
+            Math.max(0, Math.min(PlayerHandler.reload, this.canvas.width - 5)),
             15
         );
         var cf = this.context.fillStyle;
@@ -399,6 +399,76 @@ export default {
                 );
             }
         });
+
+        if (PlayerHandler.actionObject.count !== undefined) {
+            // Draw aiming laser
+            this.context.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+            this.context.lineWidth = PlayerHandler.actionObject.count;
+            this.context.beginPath();
+            this.context.moveTo(
+                PlayerHandler.x + this.offsetX,
+                PlayerHandler.y + this.offsetY
+            );
+            let dX = ControlHandler.mouseX - (PlayerHandler.x + this.offsetX),
+                dY = ControlHandler.mouseY - (PlayerHandler.y + this.offsetY);
+            let magnitude = Math.abs(
+                Math.sqrt(Math.pow(dX, 2) + Math.pow(dY, 2))
+            );
+            dX = dX / magnitude;
+            dY = dY / magnitude;
+            this.context.lineTo(
+                ControlHandler.mouseX - dX * 11,
+                ControlHandler.mouseY - dY * 11
+            );
+            this.context.stroke();
+
+            // Draw targeting reticle
+            this.context.strokeStyle = 'gray';
+            this.context.lineWidth = 3;
+            this.context.beginPath();
+            this.context.arc(
+                ControlHandler.mouseX,
+                ControlHandler.mouseY,
+                10,
+                0,
+                2 * Math.PI
+            );
+            // Draw target circle lines
+            this.context.moveTo(
+                ControlHandler.mouseX - 5,
+                ControlHandler.mouseY - 5
+            );
+            this.context.lineTo(
+                ControlHandler.mouseX - 13,
+                ControlHandler.mouseY - 13
+            );
+
+            this.context.moveTo(
+                ControlHandler.mouseX + 5,
+                ControlHandler.mouseY - 5
+            );
+            this.context.lineTo(
+                ControlHandler.mouseX + 13,
+                ControlHandler.mouseY - 13
+            );
+            this.context.moveTo(
+                ControlHandler.mouseX - 5,
+                ControlHandler.mouseY + 5
+            );
+            this.context.lineTo(
+                ControlHandler.mouseX - 13,
+                ControlHandler.mouseY + 13
+            );
+            this.context.moveTo(
+                ControlHandler.mouseX + 5,
+                ControlHandler.mouseY + 5
+            );
+            this.context.lineTo(
+                ControlHandler.mouseX + 13,
+                ControlHandler.mouseY + 13
+            );
+            this.context.stroke();
+        }
     },
 };
 

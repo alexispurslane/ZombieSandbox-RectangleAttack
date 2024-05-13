@@ -67,7 +67,9 @@ export default {
 
         this.handlePhysics();
 
-        this.reload--;
+        if (this.reload > 0) {
+            this.reload--;
+        }
 
         if (ControlHandler.mouseLeft) {
             this.mouseHeldActions();

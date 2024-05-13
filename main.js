@@ -82,7 +82,7 @@ const Game = {
 window.onload = function () {
     Game.startGame();
     document.querySelector('#canvas').width = window.innerWidth;
-    document.querySelector('#canvas').height = window.innerHeight;
+    document.querySelector('#canvas').height = window.innerWidth * (10 / 16);
     window.addEventListener('keydown', ControlHandler.kdelistener);
     window.addEventListener('keyup', ControlHandler.kuelistener);
     window.addEventListener('mousedown', ControlHandler.mdelistener);
