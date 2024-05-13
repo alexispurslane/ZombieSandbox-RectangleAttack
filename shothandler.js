@@ -5,6 +5,7 @@ import GridHandler from './gridhandler.js';
 import RenderHandler from './renderhandler.js';
 import { BLOCK_INTS } from './blocks.js';
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
+import PlayerHandler from './playerhandler.js';
 
 export default {
     size: 5,
@@ -68,7 +69,7 @@ export default {
                 } else if (
                     gridList[X][Y] !== false &&
                     gridList[X][Y] != BLOCK_INTS.cloud &&
-                    gridList[X][Y] != BLOCK_INTS.platform &&
+                    gridList[X][Y] != BLOCK_INTS.leaves &&
                     gridList[X][Y] != BLOCK_INTS.fire
                 ) {
                     var g = gridList[X][Y];
@@ -84,6 +85,7 @@ export default {
                         (shot.destroy.indexOf(g) > -1 || stonePenetration) &&
                         g != BLOCK_INTS.bedrock
                     ) {
+                        PlayerHandler.inventory[gridList[X][Y]]++;
                         gridList[X][Y] = false;
                     }
                     if (shot.flammable && g == BLOCK_INTS.wood) {

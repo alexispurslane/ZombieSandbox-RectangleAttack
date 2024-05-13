@@ -98,15 +98,8 @@ export default [
         name: 'Build Leaf',
         build: true,
         reload: 10,
-        requiredKills: 100,
+        requiredKills: 50,
         type: BLOCK_INTS.leaves,
-    },
-    {
-        name: 'Build Dark Leaf',
-        build: true,
-        reload: 10,
-        requiredKills: 100,
-        type: BLOCK_INTS.dark_leaves,
     },
     {
         name: 'Build Stone',
@@ -121,19 +114,6 @@ export default [
         reload: 6,
         requiredKills: 100,
         type: BLOCK_INTS.wood,
-    },
-    {
-        name: 'Build Platform',
-        build: true,
-        reload: 3,
-        requiredKills: 50,
-        type: BLOCK_INTS.platform,
-    },
-    {
-        name: 'Remove Block',
-        reload: 29,
-        requiredKills: 0,
-        remove: true,
     },
     {
         name: 'Build Iron',

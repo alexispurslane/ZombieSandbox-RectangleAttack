@@ -12,7 +12,6 @@ export default {
         this.accel = 0.3;
         this.baseSpeed = 8.5;
         this.inventory = {};
-        this.inventory[BLOCK_INTS.platform] = 300;
         this.inventory[BLOCK_INTS.wood] = 300;
         this.inventory[BLOCK_INTS.iron] = 10;
         Object.values(BLOCK_INTS).forEach(
@@ -125,9 +124,7 @@ export default {
                 if (
                     GridHandler.list[i][j] !== false &&
                     GridHandler.list[i][j] != BLOCK_INTS.cloud &&
-                    GridHandler.list[i][j] != BLOCK_INTS.platform &&
-                    GridHandler.list[i][j] != BLOCK_INTS.leaves &&
-                    GridHandler.list[i][j] != BLOCK_INTS.dark_leaves
+                    GridHandler.list[i][j] != BLOCK_INTS.leaves
                 ) {
                     collide = true;
                     if (GridHandler.list[i][j] == BLOCK_INTS.water) {
@@ -144,7 +141,7 @@ export default {
                     }
                 }
                 if (
-                    GridHandler.list[i][j] == BLOCK_INTS.platform &&
+                    GridHandler.list[i][j] == BLOCK_INTS.leaves &&
                     this.vY > 0 &&
                     ControlHandler.s == false
                 ) {
@@ -182,9 +179,7 @@ export default {
                 if (
                     GridHandler.list[i][j] !== false &&
                     GridHandler.list[i][j] != BLOCK_INTS.cloud &&
-                    GridHandler.list[i][j] != BLOCK_INTS.platform &&
-                    GridHandler.list[i][j] != BLOCK_INTS.leaves &&
-                    GridHandler.list[i][j] != BLOCK_INTS.dark_leaves
+                    GridHandler.list[i][j] != BLOCK_INTS.leaves
                 ) {
                     if (GridHandler.list[i][j] == BLOCK_INTS.water) {
                         this.inWater = true;
@@ -310,18 +305,6 @@ export default {
                                     this.inventory[this.actionObject.type]--;
                                 }
                             }
-                        }
-                        if (this.actionObject.remove === true) {
-                            if (GridHandler.list[X][Y] != BLOCK_INTS.bedrock) {
-                                let block = GridHandler.list[X][Y];
-                                if (block == BLOCK_INTS.fire)
-                                    block = BLOCK_INTS.wood;
-                                GridHandler.list[X][Y] = false;
-                                this.inventory[block]++;
-                                this.reload = this.blockDifficulty[block];
-                            }
-                        } else {
-                            this.reload = this.actionObject.reload;
                         }
                     }
                 }

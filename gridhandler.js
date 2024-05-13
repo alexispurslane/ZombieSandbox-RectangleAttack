@@ -24,12 +24,7 @@ export default {
         this.waterList = [];
         this.fireList = [];
         this.toggle = 0;
-        for (var i = 0; i < LEVEL_WIDTH; i++) {
-            this.list[i] = [];
-            for (var j = 0; j < LEVEL_HEIGHT; j++) {
-                this.list[i][j] = false;
-            }
-        }
+
         this.createLevel();
     },
 
@@ -53,6 +48,7 @@ export default {
         );
 
         for (let i = 0; i < LEVEL_WIDTH; i++) {
+            this.list[i] = [];
             for (let j = 0; j < LEVEL_HEIGHT; j++) {
                 if (
                     i == 0 ||
@@ -93,16 +89,29 @@ export default {
         }
 
         for (let i = 0; i < LEVEL_WIDTH; i++) {
+            let terrainDistFromTop = LEVEL_HEIGHT - this.heightmap[i];
             let r = Math.random();
-            if (r <= TREE_CHANCE) {
-                let terrainHeight = LEVEL_HEIGHT - this.heightmap[i];
-                console.log(i);
-                for (
-                    let treeHeight = Math.random() * 6 + 4;
-                    treeHeight > 0;
-                    treeHeight--
-                ) {
-                    this.list[i][terrainHeight - treeHeight] = BLOCK_INTS.wood;
+            if (
+                terrainDistFromTop < HORIZON - 3 &&
+                r <= TREE_CHANCE * (terrainDistFromTop / LEVEL_HEIGHT)
+            ) {
+                let treeHeight = (Math.random() * 6 + 4) | 0;
+                for (let j = 0; j < treeHeight; j++) {
+                    this.list[i][terrainDistFromTop - j] = BLOCK_INTS.wood;
+                }
+                for (let row = 0; row < treeHeight; row++) {
+                    let rowWidth = Math.ceil((treeHeight - row) / 3) * 3 + 1;
+                    for (
+                        let i1 = i - Math.floor(rowWidth / 2);
+                        i1 < i + Math.floor(rowWidth / 2);
+                        i1++
+                    ) {
+                        if (i1 < LEVEL_WIDTH) {
+                            this.list[i1][
+                                terrainDistFromTop - treeHeight - row
+                            ] = BLOCK_INTS.leaves;
+                        }
+                    }
                 }
             }
         }
