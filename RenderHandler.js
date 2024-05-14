@@ -11,6 +11,7 @@ import {
     HORIZON,
     LEVEL_HEIGHT,
     LEVEL_WIDTH,
+    LIGHT_RADIUS,
     fontFamily,
 } from './constants.js';
 import { BLOCK_INTS, BLOCK_COLORS } from './blocks.js';
@@ -22,7 +23,6 @@ export default {
         this.canvas = game.canvas;
         this.context = game.context;
         this.timeRatio = (Math.PI * 2) / game.dayLength;
-        this.lights = [];
         this.lights = [];
     },
 
@@ -208,16 +208,57 @@ export default {
                 if (
                     obj != BLOCK_INTS.bedrock &&
                     obj != BLOCK_INTS.cloud &&
-                    obj != false &&
+                    (obj != false || j < HORIZON) &&
                     obj != BLOCK_INTS.fire
                 ) {
-                    let X = i * BLOCK_SIZE;
-                    let Y = j * BLOCK_SIZE;
-                    X = Math.round(X + this.offsetX);
-                    Y = Math.round(Y + this.offsetY);
-                    this.context.fillStyle =
-                        'rgba(0,0,0,' + depth * 0.02 * 0.4 + ')';
+                    let X = Math.round(i * BLOCK_SIZE + this.offsetX);
+                    let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
+
+                    // Light multiplier initially determined by how deep we are
+                    // if we're below the horizon
+                    // j > HORIZON ? (j - HORIZON) / (LEVEL_HEIGHT - HORIZON) : 1.0
+                    let lightMultiplier = 1.0;
+
+                    // If we're within the light radius of any lights, decrease
+                    // the multiplier by a fixed multiple of how close we are to
+                    // the edge of the light
+                    for (let i = 0; i < this.lights.length; i++) {
+                        let dist =
+                            Math.sqrt(
+                                Math.pow(this.lights[i].x - i, 2) +
+                                    Math.pow(this.lights[i].y - j, 2)
+                            ) | 0;
+                        if (dist < LIGHT_RADIUS) {
+                            lightMultiplier = Math.max(
+                                0,
+                                lightMultiplier -
+                                    0.1 * (1.0 - dist / LIGHT_RADIUS)
+                            );
+                        }
+                    }
+
+                    // Or the player's inherent light (but only below ground)
+                    if (j > HORIZON + 3) {
+                        let distToPlayer =
+                            Math.sqrt(
+                                Math.pow(PlayerHandler.x / BLOCK_SIZE - i, 2) +
+                                    Math.pow(
+                                        PlayerHandler.y / BLOCK_SIZE - j,
+                                        2
+                                    )
+                            ) | 0;
+                        if (distToPlayer < 10) {
+                            lightMultiplier = Math.max(
+                                0,
+                                lightMultiplier -
+                                    0.8 * (1.0 - distToPlayer / 10)
+                            );
+                        }
+                    }
+
+                    this.context.fillStyle = `rgba(0,0,0, ${(depth / LEVEL_HEIGHT) * lightMultiplier})`;
                     this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+
                     if (obj == BLOCK_INTS.platform) {
                         depth += 0.2;
                     } else if (obj == BLOCK_INTS.water) {
