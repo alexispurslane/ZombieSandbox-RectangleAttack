@@ -127,7 +127,7 @@ export default {
         this.inWater = true;
         for (let i = startX; i <= endX; i++) {
             for (let j = startY; j <= endY; j++) {
-                if (GridHandler.list[i][j] === false) {
+                if (GridHandler.list[i][j] !== BLOCK_INTS.water) {
                     this.inWater = this.inWater && false;
                 }
                 if (
@@ -163,7 +163,7 @@ export default {
                     if (this.y + height * 0.5 < j * BLOCK_SIZE) {
                         newY = j * BLOCK_SIZE - height * 0.5 - 0.001;
                         collide = true;
-                        if (this.vY > this.fallSpeed / 2) {
+                        if (this.vY > this.fallSpeed * 0.4) {
                             AudioHandler.playSound('leafcrunch');
                         }
                         this.canJump--;
