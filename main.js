@@ -63,7 +63,7 @@ const Game = {
             return;
         }
         if (this.state == 'paused') {
-            drawPauseScreen(this)
+            drawPauseScreen(this);
             return;
         }
         this.time++;
@@ -86,8 +86,21 @@ const Game = {
 
 window.onload = function () {
     Game.startGame();
-    document.querySelector('#canvas').width = window.innerWidth;
-    document.querySelector('#canvas').height = window.innerWidth * (10 / 16);
+
+    // Use width as fixed point first
+    let desiredWidth = window.innerWidth;
+    let desiredHeight = desiredWidth * (10 / 16);
+
+    // If this results in an impractical height, try using the height as fixed
+    // point
+    if (desiredHeight > window.innerHeight) {
+        desiredHeight = window.innerHeight;
+        desiredWidth = desiredHeight * (16 / 10);
+    }
+
+    document.querySelector('#canvas').width = Math.min(1600, desiredWidth);
+    document.querySelector('#canvas').height = Math.min(1000, desiredHeight);
+
     window.addEventListener('keydown', ControlHandler.kdelistener);
     window.addEventListener('keyup', ControlHandler.kuelistener);
     window.addEventListener('mousedown', ControlHandler.mdelistener);
