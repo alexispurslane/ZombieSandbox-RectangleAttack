@@ -115,7 +115,7 @@ export default {
                         i1 <= i + Math.floor(rowWidth / 2);
                         i1++
                     ) {
-                        if (i1 >= LEVEL_WIDTH || i <= 0) {
+                        if (i1 >= LEVEL_WIDTH || i1 <= 0) {
                             break;
                         }
                         this.list[i1][terrainDistFromTop - treeHeight - row] =
