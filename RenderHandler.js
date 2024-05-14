@@ -15,7 +15,7 @@ import {
     LIGHT_STEPS,
     fontFamily,
 } from './constants.js';
-import { BLOCK_INTS, BLOCK_COLORS } from './blocks.js';
+import { BLOCK_INTS, BLOCK_COLORS, isShadowProductingBlock } from './blocks.js';
 
 export default {
     init(game) {
@@ -202,19 +202,19 @@ export default {
         for (let i = this.startX; i < this.endX; i++) {
             let depth = 0;
             for (let j = 0; j < this.endY; j++) {
-                let obj = GridHandler.list[i][j];
+                let block = GridHandler.list[i][j];
 
                 // Draw block
                 if (j > this.startY) {
                     let X = Math.round(i * BLOCK_SIZE + this.offsetX);
                     let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
                     if (
-                        obj !== false &&
-                        obj != BLOCK_INTS.water &&
-                        obj != BLOCK_INTS.cloud
+                        block !== false &&
+                        block != BLOCK_INTS.water &&
+                        block != BLOCK_INTS.cloud
                     ) {
-                        if (obj == BLOCK_INTS.platform) {
-                            this.context.fillStyle = BLOCK_COLORS[obj];
+                        if (block == BLOCK_INTS.platform) {
+                            this.context.fillStyle = BLOCK_COLORS[block];
                             this.context.fillRect(
                                 X,
                                 Y,
@@ -227,7 +227,7 @@ export default {
                                 BLOCK_SIZE,
                                 BLOCK_SIZE * 0.25
                             );
-                        } else if (obj == BLOCK_INTS.fire) {
+                        } else if (block == BLOCK_INTS.fire) {
                             var colors = [
                                 '#E25822',
                                 '#E27822',
@@ -246,49 +246,58 @@ export default {
                             this.context.fillStyle = color;
                             this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                         } else {
-                            this.context.fillStyle = BLOCK_COLORS[obj];
+                            this.context.fillStyle = BLOCK_COLORS[block];
                             this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                         }
                     }
 
                     // Draw shadow
+                    if (isShadowProductingBlock(block)) {
+                        // Light multiplier initially determined by how deep we are
+                        // if we're below the horizon
+                        let lightMultiplier = Math.max(
+                            0,
+                            this.castedLight[i][j]
+                        );
 
-                    // Light multiplier initially determined by how deep we are
-                    // if we're below the horizon
-                    let lightMultiplier = Math.max(0, this.castedLight[i][j]);
-
-                    // Or the player's inherent light (but only below ground)
-                    if (j > HORIZON + 3) {
-                        let distToPlayer =
-                            Math.sqrt(
-                                Math.pow(PlayerHandler.x / BLOCK_SIZE - i, 2) +
+                        // Or the player's inherent light (but only below ground)
+                        if (j > HORIZON + 3) {
+                            let distToPlayer =
+                                Math.sqrt(
                                     Math.pow(
-                                        PlayerHandler.y / BLOCK_SIZE - j,
+                                        PlayerHandler.x / BLOCK_SIZE - i,
                                         2
-                                    )
-                            ) | 0;
-                        if (distToPlayer < 10) {
-                            lightMultiplier = Math.max(
-                                0,
-                                lightMultiplier -
-                                    0.8 * (1.0 - distToPlayer / 10)
-                            );
+                                    ) +
+                                        Math.pow(
+                                            PlayerHandler.y / BLOCK_SIZE - j,
+                                            2
+                                        )
+                                ) | 0;
+                            if (distToPlayer < 10) {
+                                lightMultiplier = Math.max(
+                                    0,
+                                    lightMultiplier -
+                                        0.8 * (1.0 - distToPlayer / 10)
+                                );
+                            }
                         }
+
+                        lightMultiplier =
+                            Math.round(lightMultiplier * LIGHT_STEPS) /
+                            LIGHT_STEPS;
+
+                        let shadowEffect = Math.min(
+                            0.9,
+                            1.1 * (depth / LEVEL_HEIGHT) * lightMultiplier +
+                                this.darkness
+                        );
+                        this.context.fillStyle = `rgba(0,0,0, ${shadowEffect})`;
+                        this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                     }
-
-                    lightMultiplier =
-                        Math.round(lightMultiplier * LIGHT_STEPS) / LIGHT_STEPS;
-
-                    let shadowEffect = Math.min(
-                        0.9,
-                        (depth / LEVEL_HEIGHT) * lightMultiplier + this.darkness
-                    );
-                    this.context.fillStyle = `rgba(0,0,0, ${shadowEffect})`;
-                    this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
 
                     // Draw horizon ground decorative line thingy
                     if (
-                        obj === false &&
+                        block === false &&
                         j == HORIZON &&
                         GridHandler.list[i][j - 1] === false
                     ) {
@@ -300,20 +309,13 @@ export default {
                 }
 
                 // track shadow (has to be done on all blocks above)
-                if (
-                    obj != BLOCK_INTS.bedrock &&
-                    obj != BLOCK_INTS.cloud &&
-                    obj != false &&
-                    obj != BLOCK_INTS.fire
-                ) {
-                    if (obj == BLOCK_INTS.platform) {
+                if (isShadowProductingBlock(block)) {
+                    if (block == BLOCK_INTS.leaves) {
                         depth += 0.2;
-                    } else if (obj == BLOCK_INTS.water) {
+                    } else if (block == BLOCK_INTS.water) {
                         depth += 0.5;
-                    } else if (obj == BLOCK_INTS.wood) {
+                    } else if (block == BLOCK_INTS.wood) {
                         depth += 0.8;
-                    } else if (obj == BLOCK_INTS.fire) {
-                        depth -= 10;
                     } else {
                         depth += 1;
                     }
@@ -425,10 +427,7 @@ export default {
     },
 
     drawUI() {
-        if (
-            PlayerHandler.actionObject.count === undefined &&
-            PlayerHandler.canBuild
-        ) {
+        if (PlayerHandler.actionObject.count === undefined) {
             this.context.fillStyle = 'rgba(0,0,0,0.2)';
             this.context.fillRect(
                 (((ControlHandler.mouseX - this.offsetX) / BLOCK_SIZE) | 0) *
@@ -718,6 +717,12 @@ export function drawMenuScreen(game) {
         'normal 15px/1 Shlop',
         medium
     );
+
+    if (ControlHandler.mouseLeft) {
+        game.startGame();
+        game.state = 'game';
+    }
+
     frame++;
 }
 
@@ -800,6 +805,12 @@ export function drawPauseScreen(game) {
         'normal 15px/1 Shlop',
         medium
     );
+
+    if (ControlHandler.mouseLeft) {
+        game.startGame();
+        game.state = 'game';
+    }
+
     frame++;
 }
 

@@ -25,11 +25,12 @@ export default {
     enterFrame() {},
 
     scrollEvent(e) {
-         if(e.deltaY > 0) {
-             PlayerHandler.wheel(-100)
-         } else if (e.deltaY < 0) {
-             PlayerHandler.wheel(100)
-         } else {}
+        if (e.deltaY > 0) {
+            PlayerHandler.wheel(-100);
+        } else if (e.deltaY < 0) {
+            PlayerHandler.wheel(100);
+        } else {
+        }
     },
 
     keyDownEvent(e) {
@@ -97,18 +98,6 @@ export default {
     },
 
     mouseUpEvent(e) {
-        if (
-            this.mouseLeft &&
-            this.mouseX > 0 &&
-            this.mouseX < this.canvas.width &&
-            this.mouseY > 0 &&
-            this.mouseY < this.canvas.height &&
-            (this.game.state == 'menuScreen' ||
-                this.game.state == 'gameOverScreen')
-        ) {
-            this.game.startGame();
-            this.game.state = 'game';
-        }
         if (e.button == 0) {
             this.mouseLeft = false;
         } else if (e.button == 2) {

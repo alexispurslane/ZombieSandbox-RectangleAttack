@@ -108,13 +108,14 @@ export default {
                     this.list[i][terrainDistFromTop - j] = BLOCK_INTS.wood;
                 }
                 for (let row = 0; row < treeHeight; row++) {
-                    let rowWidth = Math.ceil((treeHeight - row) / 3) * 3 + 1;
+                    let rowWidth = (((treeHeight - row) / 3) | 0) * 3;
+                    rowWidth += rowWidth % 2 ^ 1;
                     for (
                         let i1 = i - Math.floor(rowWidth / 2);
-                        i1 < i + Math.floor(rowWidth / 2);
+                        i1 <= i + Math.floor(rowWidth / 2);
                         i1++
                     ) {
-                        if (i1 >= LEVEL_WIDTH) {
+                        if (i1 >= LEVEL_WIDTH || i <= 0) {
                             break;
                         }
                         this.list[i1][terrainDistFromTop - treeHeight - row] =
@@ -209,13 +210,6 @@ export default {
                 this.waterList[this.waterList.length] = {
                     x: water.x,
                     y: water.y + 1,
-                };
-            }
-            if (water.y > HORIZON && list[water.x][water.y - 1] === false) {
-                list[water.x][water.y - 1] = BLOCK_INTS.water;
-                this.waterList[this.waterList.length] = {
-                    x: water.x,
-                    y: water.y - 1,
                 };
             }
             if (water.x > 0 && list[water.x - 1][water.y] === false) {

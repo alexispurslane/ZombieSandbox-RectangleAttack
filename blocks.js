@@ -1,5 +1,5 @@
 const blocks = {
-    bedrock: '#363532',
+    bedrock: '#010101',
     fire: 'rgba(255, 0, 0, 0.7)',
     stone: '#807E79',
     iron: '#61666A',
@@ -19,3 +19,12 @@ Object.keys(blocks).forEach((block, i) => {
 });
 
 export { BLOCK_INTS, BLOCK_COLORS };
+
+export function isShadowProductingBlock(obj) {
+    return (
+        obj !== BLOCK_INTS.bedrock &&
+        obj !== BLOCK_INTS.cloud &&
+        obj !== false &&
+        obj !== BLOCK_INTS.fire
+    );
+}
