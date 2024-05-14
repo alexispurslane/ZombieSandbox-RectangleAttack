@@ -4,6 +4,7 @@ import GridHandler from './GridHandler.js';
 import RenderHandler, {
     drawGameOverScreen,
     drawMenuScreen,
+    drawPauseScreen,
 } from './RenderHandler.js';
 import PlayerHandler from './PlayerHandler.js';
 import EnemyHandler from './EnemyHandler.js';
@@ -52,7 +53,6 @@ const Game = {
     },
 
     enterFrame() {
-        this.handlers.forEach((h) => h.enterFrame(this));
         if (this.state == 'menuScreen') {
             drawMenuScreen(this);
             return;
@@ -60,6 +60,10 @@ const Game = {
         if (PlayerHandler.hp <= 0) {
             this.state = 'gameOverScreen';
             drawGameOverScreen(this);
+            return;
+        }
+        if (this.state == 'paused') {
+            drawPauseScreen(this)
             return;
         }
         this.time++;
@@ -76,6 +80,7 @@ const Game = {
         } else if (this.newLevel) {
             drawNewLevelAlert(this);
         }
+        this.handlers.forEach((h) => h.enterFrame(this));
     },
 };
 
@@ -88,6 +93,7 @@ window.onload = function () {
     window.addEventListener('mousedown', ControlHandler.mdelistener);
     window.addEventListener('mouseup', ControlHandler.muelistener);
     window.addEventListener('mousemove', ControlHandler.mmelistener);
+    window.addEventListener('wheel', ControlHandler.scrolllistener);
 
     document.getElementById('canvas').addEventListener('contextmenu', (e) => {
         if (e.button == 2) {

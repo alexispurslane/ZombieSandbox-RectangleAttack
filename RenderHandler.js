@@ -608,7 +608,7 @@ export function drawMenuScreen(game) {
         );
     drawText(
         game.context,
-        'Use "A" and "D" to move and "Space" to jump.',
+        'Use "A" and "D" to move and "Space" to jump. "S" to drop through leaves and "Esc" to pause',
         hW,
         hH - 30,
         'normal 15px/1 ' + fontFamily,
@@ -616,7 +616,89 @@ export function drawMenuScreen(game) {
     );
     drawText(
         game.context,
-        'Use arrow keys to change action and left click to perform action.',
+        'Use scroll wheel or arrow keys to change action and left click to perform action.',
+        hW,
+        hH - 10,
+        'normal 15px/1 ' + fontFamily,
+        medium
+    );
+    drawText(
+        game.context,
+        'Beware the night! Kill to advance!',
+        hW,
+        hH + 30,
+        'normal 15px/1 Shlop',
+        medium
+    );
+    frame++;
+}
+
+export function drawPauseScreen(game) {
+    game.state = 'paused';
+
+    let gradient = game.context.createLinearGradient(
+        0,
+        0,
+        0,
+        game.canvas.height
+    );
+    let depth = ((ViewHandler.y / (LEVEL_HEIGHT * BLOCK_SIZE)) * 250) | 0;
+    let dist = ((20 + 1) * 75) | 0;
+    gradient.addColorStop(
+        0,
+        'rgb(' + (77 + depth) + ',' + (117 + depth) + ',' + (179 + depth) + ')'
+    );
+    gradient.addColorStop(
+        1,
+        'rgb(' +
+            (127 + depth - dist) +
+            ',' +
+            (167 + depth - dist) +
+            ',' +
+            (228 + depth - dist) +
+            ')'
+    );
+
+    game.context.fillStyle = gradient;
+    game.context.fillRect(0, 0, game.canvas.width, game.canvas.height);
+    var hW = game.canvas.width * 0.5;
+    var hH = game.canvas.height * 0.5;
+    var dark = 'rgba(255,255,255,1)';
+    var medium = 'rgba(155,155,155,1)';
+    var light = 'rgba(55,55,55,1)';
+    drawText(
+        game.context,
+        'Paused',
+        hW,
+        hH - 150,
+        'normal 80px/1 Shlop',
+        'rgba(0, 255, 10, 1)',
+        'center'
+    );
+    if (lastFrame == frame - 50) {
+        toggle = !toggle;
+        lastFrame = frame;
+    }
+    // if (toggle)
+    //     drawText(
+    //         game.context,
+    //         'Click to Start',
+    //         hW,
+    //         hH - 70,
+    //         'normal 17px/1 ' + fontFamily,
+    //         dark
+    //     );
+    drawText(
+        game.context,
+        'Use "A" and "D" to move and "Space" to jump. "S" to drop through leaves and "Esc" to pause',
+        hW,
+        hH - 30,
+        'normal 15px/1 ' + fontFamily,
+        medium
+    );
+    drawText(
+        game.context,
+        'Use scroll wheel or arrows to change action and left click to perform action.',
         hW,
         hH - 10,
         'normal 15px/1 ' + fontFamily,
