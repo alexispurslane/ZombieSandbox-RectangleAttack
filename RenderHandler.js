@@ -25,6 +25,14 @@ export default {
         this.context = game.context;
         this.timeRatio = (Math.PI * 2) / game.dayLength;
         this.lights = [];
+        this.castedLight = [];
+
+        for (let i = 0; i < LEVEL_WIDTH; i++) {
+            this.castedLight[i] = [];
+            for (let j = 0; j < LEVEL_HEIGHT; j++) {
+                this.castedLight[i][j] = 1.0;
+            }
+        }
     },
 
     enterFrame() {
@@ -160,10 +168,43 @@ export default {
 
     drawMap() {
         for (let i = this.startX; i < this.endX; i++) {
+            for (let j = this.startY; j < this.endY; j++) {
+                this.castedLight[i][j] = 1.0;
+            }
+        }
+        // If we're within the light radius of any lights, decrease
+        // the multiplier by a fixed multiple of how close we are to
+        // the edge of the light
+        for (let i = 0; i < this.lights.length; i++) {
+            let light = this.lights[i];
+
+            for (
+                let i = Math.ceil(light.x - LIGHT_RADIUS / 2 - 3);
+                i < Math.ceil(light.x + LIGHT_RADIUS / 2 + 3);
+                i++
+            ) {
+                for (
+                    let j = Math.ceil(light.y - LIGHT_RADIUS / 2 - 3);
+                    j < Math.ceil(light.y + LIGHT_RADIUS / 2 + 3);
+                    j++
+                ) {
+                    let dist =
+                        Math.sqrt(
+                            Math.pow(light.x - i, 2) + Math.pow(light.y - j, 2)
+                        ) | 0;
+                    if (dist < LIGHT_RADIUS) {
+                        this.castedLight[i][j] -= 1.0 - dist / LIGHT_RADIUS;
+                    }
+                }
+            }
+        }
+
+        for (let i = this.startX; i < this.endX; i++) {
             let depth = 0;
             for (let j = 0; j < this.endY; j++) {
                 let obj = GridHandler.list[i][j];
 
+                // Draw block
                 if (j > this.startY) {
                     let X = Math.round(i * BLOCK_SIZE + this.offsetX);
                     let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
@@ -209,48 +250,12 @@ export default {
                             this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                         }
                     }
-                    if (
-                        obj === false &&
-                        j == HORIZON &&
-                        GridHandler.list[i][j - 1] === false
-                    ) {
-                        this.context.fillStyle = 'rbga(0,0,0,0.2)';
-                        this.context.fillRect(X + 1, Y, 2, 2);
-                        this.context.fillRect(X + 5, Y, 3, 3);
-                        this.context.fillRect(X + 11, Y, 2, 2);
-                    }
-                }
-                if (
-                    obj != BLOCK_INTS.bedrock &&
-                    obj != BLOCK_INTS.cloud &&
-                    obj != false &&
-                    obj != BLOCK_INTS.fire
-                ) {
-                    let X = Math.round(i * BLOCK_SIZE + this.offsetX);
-                    let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
+
+                    // Draw shadow
 
                     // Light multiplier initially determined by how deep we are
                     // if we're below the horizon
-                    //
-                    let lightMultiplier = 1.0;
-
-                    // If we're within the light radius of any lights, decrease
-                    // the multiplier by a fixed multiple of how close we are to
-                    // the edge of the light
-                    for (let i = 0; i < this.lights.length; i++) {
-                        let dist =
-                            Math.sqrt(
-                                Math.pow(this.lights[i].x - i, 2) +
-                                    Math.pow(this.lights[i].y - j, 2)
-                            ) | 0;
-                        if (dist < LIGHT_RADIUS) {
-                            lightMultiplier = Math.max(
-                                0,
-                                lightMultiplier -
-                                    0.1 * (1.0 - dist / LIGHT_RADIUS)
-                            );
-                        }
-                    }
+                    let lightMultiplier = Math.max(0, this.castedLight[i][j]);
 
                     // Or the player's inherent light (but only below ground)
                     if (j > HORIZON + 3) {
@@ -281,6 +286,26 @@ export default {
                     this.context.fillStyle = `rgba(0,0,0, ${shadowEffect})`;
                     this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
 
+                    // Draw horizon ground decorative line thingy
+                    if (
+                        obj === false &&
+                        j == HORIZON &&
+                        GridHandler.list[i][j - 1] === false
+                    ) {
+                        this.context.fillStyle = 'rbga(0,0,0,0.2)';
+                        this.context.fillRect(X + 1, Y, 2, 2);
+                        this.context.fillRect(X + 5, Y, 3, 3);
+                        this.context.fillRect(X + 11, Y, 2, 2);
+                    }
+                }
+
+                // track shadow (has to be done on all blocks above)
+                if (
+                    obj != BLOCK_INTS.bedrock &&
+                    obj != BLOCK_INTS.cloud &&
+                    obj != false &&
+                    obj != BLOCK_INTS.fire
+                ) {
                     if (obj == BLOCK_INTS.platform) {
                         depth += 0.2;
                     } else if (obj == BLOCK_INTS.water) {
