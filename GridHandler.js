@@ -2,9 +2,12 @@ import { BLOCK_INTS } from './blocks.js';
 import {
     BASE_AMPLITUDE,
     BASE_WAVELENGTH,
+    CAVE_HORIZON_RATIO,
     CAVE_PERLIN_CUTOFF,
+    CLOUD_HORIZON_RATIO,
     CLOUD_PERLIN_CUTOFF,
     HORIZON,
+    ISLAND_HORIZON_RATIO,
     ISLAND_PERLIN_CUTOFF,
     LEVEL_HEIGHT,
     LEVEL_OCTAVES,
@@ -47,6 +50,7 @@ export default {
             BASE_WAVELENGTH
         );
 
+        // Apply heightmap, rock noise, and 2d simplex noise to create terrain
         for (let i = 0; i < LEVEL_WIDTH; i++) {
             this.list[i] = [];
             for (let j = 0; j < LEVEL_HEIGHT; j++) {
@@ -71,16 +75,19 @@ export default {
                     this.list[i][j] = false;
                 }
                 let overlay = simplex.noise2D(i * 0.03, j * 0.03);
-                if (j <= HORIZON * 0.5 && overlay >= ISLAND_PERLIN_CUTOFF) {
+                if (
+                    j <= HORIZON * ISLAND_HORIZON_RATIO &&
+                    overlay >= ISLAND_PERLIN_CUTOFF
+                ) {
                     this.list[i][j] = BLOCK_INTS.iron;
                 } else if (
-                    j <= HORIZON * 0.8 &&
+                    j <= HORIZON * CLOUD_HORIZON_RATIO &&
                     overlay >= CLOUD_PERLIN_CUTOFF &&
                     this.list[i][j] === false
                 ) {
                     this.list[i][j] = BLOCK_INTS.cloud;
                 } else if (
-                    j >= HORIZON * 1.2 &&
+                    j >= HORIZON * CAVE_HORIZON_RATIO &&
                     overlay >= CAVE_PERLIN_CUTOFF
                 ) {
                     this.list[i][j] = false;
@@ -88,6 +95,7 @@ export default {
             }
         }
 
+        // Generate trees
         for (let i = 0; i < LEVEL_WIDTH; i++) {
             let terrainDistFromTop = LEVEL_HEIGHT - this.heightmap[i];
             let r = Math.random();
@@ -100,17 +108,18 @@ export default {
                     this.list[i][terrainDistFromTop - j] = BLOCK_INTS.wood;
                 }
                 for (let row = 0; row < treeHeight; row++) {
-                    let rowWidth = Math.ceil((treeHeight - row) / 3) * 3 + 1;
+                    let rowWidth = (((treeHeight - row) / 3) | 0) * 3;
+                    rowWidth += rowWidth % 2 ^ 1;
                     for (
                         let i1 = i - Math.floor(rowWidth / 2);
-                        i1 < i + Math.floor(rowWidth / 2);
+                        i1 <= i + Math.floor(rowWidth / 2);
                         i1++
                     ) {
-                        if (i1 < LEVEL_WIDTH) {
-                            this.list[i1][
-                                terrainDistFromTop - treeHeight - row
-                            ] = BLOCK_INTS.leaves;
+                        if (i1 >= LEVEL_WIDTH || i <= 0) {
+                            break;
                         }
+                        this.list[i1][terrainDistFromTop - treeHeight - row] =
+                            BLOCK_INTS.leaves;
                     }
                 }
             }
@@ -201,13 +210,6 @@ export default {
                 this.waterList[this.waterList.length] = {
                     x: water.x,
                     y: water.y + 1,
-                };
-            }
-            if (water.y > HORIZON && list[water.x][water.y - 1] === false) {
-                list[water.x][water.y - 1] = BLOCK_INTS.water;
-                this.waterList[this.waterList.length] = {
-                    x: water.x,
-                    y: water.y - 1,
                 };
             }
             if (water.x > 0 && list[water.x - 1][water.y] === false) {

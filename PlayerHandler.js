@@ -46,7 +46,6 @@ export default {
         this.blockDifficulty = {};
         let bi = Object.values(BLOCK_INTS);
         bi.forEach((k, i) => (this.blockDifficulty[k] = (bi.length - i) * 5));
-        console.log(this.blockDifficulty);
         this.hp = this.startHp;
         this.kills = 0;
         this.action = 0;

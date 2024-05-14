@@ -19,9 +19,19 @@ export default {
         this.mdelistener = this.mouseDownEvent.bind(this);
         this.muelistener = this.mouseUpEvent.bind(this);
         this.mmelistener = this.mouseMoveEvent.bind(this);
+        this.scrolllistener = this.scrollEvent.bind(this);
     },
 
     enterFrame() {},
+
+    scrollEvent(e) {
+        if (e.deltaY > 0) {
+            PlayerHandler.wheel(-100);
+        } else if (e.deltaY < 0) {
+            PlayerHandler.wheel(100);
+        } else {
+        }
+    },
 
     keyDownEvent(e) {
         if (e.keyCode == 32) {
@@ -36,6 +46,12 @@ export default {
             this.space = true;
         } else if (e.keyCode == 88) {
             this.mouseLeft = true;
+        } else if (e.keyCode == 27) {
+            if (this.game.state == 'game') {
+                this.game.state = 'paused';
+            } else if (this.game.state == 'paused') {
+                this.game.state = 'game';
+            }
         } else if (
             (e.keyCode >= 48 || e.keyCode <= 57) &&
             this.game.state == 'game'
@@ -82,18 +98,6 @@ export default {
     },
 
     mouseUpEvent(e) {
-        if (
-            this.mouseLeft &&
-            this.mouseX > 0 &&
-            this.mouseX < this.canvas.width &&
-            this.mouseY > 0 &&
-            this.mouseY < this.canvas.height &&
-            (this.game.state == 'menuScreen' ||
-                this.game.state == 'gameOverScreen')
-        ) {
-            this.game.startGame();
-            this.game.state = 'game';
-        }
         if (e.button == 0) {
             this.mouseLeft = false;
         } else if (e.button == 2) {

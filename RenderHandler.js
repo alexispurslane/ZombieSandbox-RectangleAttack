@@ -11,9 +11,11 @@ import {
     HORIZON,
     LEVEL_HEIGHT,
     LEVEL_WIDTH,
+    LIGHT_RADIUS,
+    LIGHT_STEPS,
     fontFamily,
 } from './constants.js';
-import { BLOCK_INTS, BLOCK_COLORS } from './blocks.js';
+import { BLOCK_INTS, BLOCK_COLORS, isShadowProductingBlock } from './blocks.js';
 
 export default {
     init(game) {
@@ -23,7 +25,14 @@ export default {
         this.context = game.context;
         this.timeRatio = (Math.PI * 2) / game.dayLength;
         this.lights = [];
-        this.lights = [];
+        this.castedLight = [];
+
+        for (let i = 0; i < LEVEL_WIDTH; i++) {
+            this.castedLight[i] = [];
+            for (let j = 0; j < LEVEL_HEIGHT; j++) {
+                this.castedLight[i][j] = 1.0;
+            }
+        }
     },
 
     enterFrame() {
@@ -40,6 +49,13 @@ export default {
             this.startY + Math.ceil(this.canvas.height / BLOCK_SIZE) + 1,
             LEVEL_HEIGHT
         );
+
+        this.darkness =
+            0.5 *
+            (PlayerHandler.y / BLOCK_SIZE > HORIZON
+                ? (PlayerHandler.y / BLOCK_SIZE - HORIZON) /
+                  (LEVEL_HEIGHT - HORIZON)
+                : 0.0);
 
         this.drawBackground(this.game.time * this.timeRatio);
 
@@ -140,25 +156,65 @@ export default {
                 this.canvas.width,
                 this.canvas.height - Y
             );
+            this.context.fillStyle = `rgba(0,0,0, ${2 * this.darkness})`;
+            this.context.fillRect(
+                0,
+                Y,
+                this.canvas.width,
+                this.canvas.height - Y
+            );
         }
     },
 
     drawMap() {
         for (let i = this.startX; i < this.endX; i++) {
+            for (let j = this.startY; j < this.endY; j++) {
+                this.castedLight[i][j] = 1.0;
+            }
+        }
+        // If we're within the light radius of any lights, decrease
+        // the multiplier by a fixed multiple of how close we are to
+        // the edge of the light
+        for (let i = 0; i < this.lights.length; i++) {
+            let light = this.lights[i];
+
+            for (
+                let i = Math.ceil(light.x - LIGHT_RADIUS / 2 - 3);
+                i < Math.ceil(light.x + LIGHT_RADIUS / 2 + 3);
+                i++
+            ) {
+                for (
+                    let j = Math.ceil(light.y - LIGHT_RADIUS / 2 - 3);
+                    j < Math.ceil(light.y + LIGHT_RADIUS / 2 + 3);
+                    j++
+                ) {
+                    let dist =
+                        Math.sqrt(
+                            Math.pow(light.x - i, 2) + Math.pow(light.y - j, 2)
+                        ) | 0;
+                    if (dist < LIGHT_RADIUS) {
+                        this.castedLight[i][j] -= 1.0 - dist / LIGHT_RADIUS;
+                    }
+                }
+            }
+        }
+
+        for (let i = this.startX; i < this.endX; i++) {
             let depth = 0;
             for (let j = 0; j < this.endY; j++) {
-                let obj = GridHandler.list[i][j];
+                let block = GridHandler.list[i][j];
 
+                // Draw block
                 if (j > this.startY) {
                     let X = Math.round(i * BLOCK_SIZE + this.offsetX);
                     let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
                     if (
-                        obj !== false &&
-                        obj != BLOCK_INTS.water &&
-                        obj != BLOCK_INTS.cloud
+                        block !== false &&
+                        block != BLOCK_INTS.water &&
+                        block != BLOCK_INTS.cloud
                     ) {
-                        if (obj == BLOCK_INTS.platform) {
-                            this.context.fillStyle = BLOCK_COLORS[obj];
+                        if (block == BLOCK_INTS.platform) {
+                            this.context.fillStyle = BLOCK_COLORS[block];
                             this.context.fillRect(
                                 X,
                                 Y,
@@ -171,7 +227,7 @@ export default {
                                 BLOCK_SIZE,
                                 BLOCK_SIZE * 0.25
                             );
-                        } else if (obj == BLOCK_INTS.fire) {
+                        } else if (block == BLOCK_INTS.fire) {
                             var colors = [
                                 '#E25822',
                                 '#E27822',
@@ -190,12 +246,58 @@ export default {
                             this.context.fillStyle = color;
                             this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                         } else {
-                            this.context.fillStyle = BLOCK_COLORS[obj];
+                            this.context.fillStyle = BLOCK_COLORS[block];
                             this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
                         }
                     }
+
+                    // Draw shadow
+                    if (isShadowProductingBlock(block)) {
+                        // Light multiplier initially determined by how deep we are
+                        // if we're below the horizon
+                        let lightMultiplier = Math.max(
+                            0,
+                            this.castedLight[i][j]
+                        );
+
+                        // Or the player's inherent light (but only below ground)
+                        if (j > HORIZON + 3) {
+                            let distToPlayer =
+                                Math.sqrt(
+                                    Math.pow(
+                                        PlayerHandler.x / BLOCK_SIZE - i,
+                                        2
+                                    ) +
+                                        Math.pow(
+                                            PlayerHandler.y / BLOCK_SIZE - j,
+                                            2
+                                        )
+                                ) | 0;
+                            if (distToPlayer < 10) {
+                                lightMultiplier = Math.max(
+                                    0,
+                                    lightMultiplier -
+                                        0.8 * (1.0 - distToPlayer / 10)
+                                );
+                            }
+                        }
+
+                        lightMultiplier =
+                            Math.round(lightMultiplier * LIGHT_STEPS) /
+                            LIGHT_STEPS;
+
+                        let shadowEffect = Math.min(
+                            0.9,
+                            1.1 * (depth / LEVEL_HEIGHT) * lightMultiplier +
+                                this.darkness
+                        );
+                        this.context.fillStyle = `rgba(0,0,0, ${shadowEffect})`;
+                        this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+
+                    // Draw horizon ground decorative line thingy
                     if (
-                        obj === false &&
+                        block === false &&
                         j == HORIZON &&
                         GridHandler.list[i][j - 1] === false
                     ) {
@@ -205,27 +307,15 @@ export default {
                         this.context.fillRect(X + 11, Y, 2, 2);
                     }
                 }
-                if (
-                    obj != BLOCK_INTS.bedrock &&
-                    obj != BLOCK_INTS.cloud &&
-                    obj != false &&
-                    obj != BLOCK_INTS.fire
-                ) {
-                    let X = i * BLOCK_SIZE;
-                    let Y = j * BLOCK_SIZE;
-                    X = Math.round(X + this.offsetX);
-                    Y = Math.round(Y + this.offsetY);
-                    this.context.fillStyle =
-                        'rgba(0,0,0,' + depth * 0.02 * 0.4 + ')';
-                    this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
-                    if (obj == BLOCK_INTS.platform) {
+
+                // track shadow (has to be done on all blocks above)
+                if (isShadowProductingBlock(block)) {
+                    if (block == BLOCK_INTS.leaves) {
                         depth += 0.2;
-                    } else if (obj == BLOCK_INTS.water) {
+                    } else if (block == BLOCK_INTS.water) {
                         depth += 0.5;
-                    } else if (obj == BLOCK_INTS.wood) {
+                    } else if (block == BLOCK_INTS.wood) {
                         depth += 0.8;
-                    } else if (obj == BLOCK_INTS.fire) {
-                        depth -= 10;
                     } else {
                         depth += 1;
                     }
@@ -337,10 +427,7 @@ export default {
     },
 
     drawUI() {
-        if (
-            PlayerHandler.actionObject.count === undefined &&
-            PlayerHandler.canBuild
-        ) {
+        if (PlayerHandler.actionObject.count === undefined) {
             this.context.fillStyle = 'rgba(0,0,0,0.2)';
             this.context.fillRect(
                 (((ControlHandler.mouseX - this.offsetX) / BLOCK_SIZE) | 0) *
@@ -608,7 +695,7 @@ export function drawMenuScreen(game) {
         );
     drawText(
         game.context,
-        'Use "A" and "D" to move and "Space" to jump.',
+        'Use "A" and "D" to move and "Space" to jump. "S" to drop through leaves and "Esc" to pause',
         hW,
         hH - 30,
         'normal 15px/1 ' + fontFamily,
@@ -616,7 +703,7 @@ export function drawMenuScreen(game) {
     );
     drawText(
         game.context,
-        'Use arrow keys to change action and left click to perform action.',
+        'Use scroll wheel or arrow keys to change action and left click to perform action.',
         hW,
         hH - 10,
         'normal 15px/1 ' + fontFamily,
@@ -630,6 +717,100 @@ export function drawMenuScreen(game) {
         'normal 15px/1 Shlop',
         medium
     );
+
+    if (ControlHandler.mouseLeft) {
+        game.startGame();
+        game.state = 'game';
+    }
+
+    frame++;
+}
+
+export function drawPauseScreen(game) {
+    game.state = 'paused';
+
+    let gradient = game.context.createLinearGradient(
+        0,
+        0,
+        0,
+        game.canvas.height
+    );
+    let depth = ((ViewHandler.y / (LEVEL_HEIGHT * BLOCK_SIZE)) * 250) | 0;
+    let dist = ((20 + 1) * 75) | 0;
+    gradient.addColorStop(
+        0,
+        'rgb(' + (77 + depth) + ',' + (117 + depth) + ',' + (179 + depth) + ')'
+    );
+    gradient.addColorStop(
+        1,
+        'rgb(' +
+            (127 + depth - dist) +
+            ',' +
+            (167 + depth - dist) +
+            ',' +
+            (228 + depth - dist) +
+            ')'
+    );
+
+    game.context.fillStyle = gradient;
+    game.context.fillRect(0, 0, game.canvas.width, game.canvas.height);
+    var hW = game.canvas.width * 0.5;
+    var hH = game.canvas.height * 0.5;
+    var dark = 'rgba(255,255,255,1)';
+    var medium = 'rgba(155,155,155,1)';
+    var light = 'rgba(55,55,55,1)';
+    drawText(
+        game.context,
+        'Paused',
+        hW,
+        hH - 150,
+        'normal 80px/1 Shlop',
+        'rgba(0, 255, 10, 1)',
+        'center'
+    );
+    if (lastFrame == frame - 50) {
+        toggle = !toggle;
+        lastFrame = frame;
+    }
+    // if (toggle)
+    //     drawText(
+    //         game.context,
+    //         'Click to Start',
+    //         hW,
+    //         hH - 70,
+    //         'normal 17px/1 ' + fontFamily,
+    //         dark
+    //     );
+    drawText(
+        game.context,
+        'Use "A" and "D" to move and "Space" to jump. "S" to drop through leaves and "Esc" to pause',
+        hW,
+        hH - 30,
+        'normal 15px/1 ' + fontFamily,
+        medium
+    );
+    drawText(
+        game.context,
+        'Use scroll wheel or arrows to change action and left click to perform action.',
+        hW,
+        hH - 10,
+        'normal 15px/1 ' + fontFamily,
+        medium
+    );
+    drawText(
+        game.context,
+        'Beware the night! Kill to advance!',
+        hW,
+        hH + 30,
+        'normal 15px/1 Shlop',
+        medium
+    );
+
+    if (ControlHandler.mouseLeft) {
+        game.startGame();
+        game.state = 'game';
+    }
+
     frame++;
 }
 
