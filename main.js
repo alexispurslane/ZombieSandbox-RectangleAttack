@@ -12,6 +12,7 @@ import ShotHandler from './ShotHandler.js';
 import DustHandler from './DustHandler.js';
 import BloodHandler from './BloodHandler.js';
 import ViewHandler from './ViewHandler.js';
+import AudioHandler from './AudioHandler.js';
 
 var newLevelTime = -1;
 const Game = {
@@ -29,6 +30,7 @@ const Game = {
     state: 'menuScreen',
 
     handlers: [
+        AudioHandler,
         ControlHandler,
         GridHandler,
         RenderHandler,

@@ -6,6 +6,7 @@ import RenderHandler from './RenderHandler.js';
 import { BLOCK_INTS } from './blocks.js';
 import { BLOCK_SIZE, LEVEL_HEIGHT, LEVEL_WIDTH } from './constants.js';
 import PlayerHandler from './PlayerHandler.js';
+import AudioHandler from './AudioHandler.js';
 
 export default {
     size: 5,
@@ -142,6 +143,7 @@ export default {
                         this.actions[shot.explode]
                     );
                 }
+                AudioHandler.playSound('explosion');
             }
             if (shot.hp <= 0) {
                 this.pool[this.pool.length] = shot;

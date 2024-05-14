@@ -1,18 +1,52 @@
 import { BLOCK_INTS } from './blocks.js';
 
+/**
+ *
+ * ### Action format:
+ *
+ * - name: weapon name, as shown in switcher bar
+ *
+ * - reload: number of frames it takes for the weapon to be recharged after a
+     shot
+ *
+ * - speed: speed of the bullet
+ *
+ * - count: number of bullets shot (they fan out in a cone determined by
+     `spread`)
+ *
+ * - `hp`: lifetime (in frames) of the bullet
+ *
+ * - `modY`: arc of the bullet
+ *
+ * - `explode`: whether the bullet explodes into multiple bullets on impact, and
+     if so, which type of damage does the explosion do
+ *
+ * - `spread`: what percent of 90 degrees is the firing cone of this weapon
+ *
+ * - `damage`: amount of damage done by this weapon's bullet
+ *
+ * - `requiredKills`: amount of kills necessary to unlock this weapon
+ *
+ * - `destroy`: what types of blocks this weapon's core bullet is allowed to destroy
+ *
+ * - `sound`: sound effect to play when this weapon is fired
+ *
+ */
+
 export default [
     {
         name: 'Shotgun',
-        reload: 25,
-        count: 4,
-        speed: 7,
+        reload: 60,
+        count: 10,
+        speed: 10,
         hp: 180,
         modY: 0.01,
         explode: 0,
-        spread: 0.7,
-        damage: 1,
+        spread: 1.0,
+        damage: 0.5,
         requiredKills: 0,
         destroy: [BLOCK_INTS.dirt],
+        sound: 'shotgun',
     },
     {
         name: 'Sniper Rifle',
@@ -29,7 +63,7 @@ export default [
     },
     {
         name: 'Grenade',
-        reload: 45,
+        reload: 70,
         count: 1,
         speed: 5,
         requiredKills: 150,
@@ -37,7 +71,7 @@ export default [
         modY: 0.1,
         explode: 1,
         spread: 0.5,
-        damage: 2,
+        damage: 2.5,
         requiredKills: 0,
         destroy: [BLOCK_INTS.dirt, BLOCK_INTS.wood],
     },
