@@ -21,6 +21,7 @@ export const ISLAND_PERLIN_CUTOFF = 0.3;
 
 export const HORIZON = (LEVEL_HEIGHT * 0.65) | 0;
 export const BLOCK_SIZE = 32;
+export const LIGHT_STEPS = 4;
 
 export const TREE_CHANCE = 0.07;
 

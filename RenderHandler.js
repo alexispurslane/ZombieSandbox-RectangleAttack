@@ -12,6 +12,7 @@ import {
     LEVEL_HEIGHT,
     LEVEL_WIDTH,
     LIGHT_RADIUS,
+    LIGHT_STEPS,
     fontFamily,
 } from './constants.js';
 import { BLOCK_INTS, BLOCK_COLORS } from './blocks.js';
@@ -40,6 +41,13 @@ export default {
             this.startY + Math.ceil(this.canvas.height / BLOCK_SIZE) + 1,
             LEVEL_HEIGHT
         );
+
+        this.darkness =
+            0.5 *
+            (PlayerHandler.y / BLOCK_SIZE > HORIZON
+                ? (PlayerHandler.y / BLOCK_SIZE - HORIZON) /
+                  (LEVEL_HEIGHT - HORIZON)
+                : 0.0);
 
         this.drawBackground(this.game.time * this.timeRatio);
 
@@ -140,6 +148,13 @@ export default {
                 this.canvas.width,
                 this.canvas.height - Y
             );
+            this.context.fillStyle = `rgba(0,0,0, ${2 * this.darkness})`;
+            this.context.fillRect(
+                0,
+                Y,
+                this.canvas.width,
+                this.canvas.height - Y
+            );
         }
     },
 
@@ -208,7 +223,7 @@ export default {
                 if (
                     obj != BLOCK_INTS.bedrock &&
                     obj != BLOCK_INTS.cloud &&
-                    (obj != false || j < HORIZON) &&
+                    obj != false &&
                     obj != BLOCK_INTS.fire
                 ) {
                     let X = Math.round(i * BLOCK_SIZE + this.offsetX);
@@ -216,7 +231,7 @@ export default {
 
                     // Light multiplier initially determined by how deep we are
                     // if we're below the horizon
-                    // j > HORIZON ? (j - HORIZON) / (LEVEL_HEIGHT - HORIZON) : 1.0
+                    //
                     let lightMultiplier = 1.0;
 
                     // If we're within the light radius of any lights, decrease
@@ -256,7 +271,14 @@ export default {
                         }
                     }
 
-                    this.context.fillStyle = `rgba(0,0,0, ${(depth / LEVEL_HEIGHT) * lightMultiplier})`;
+                    lightMultiplier =
+                        Math.round(lightMultiplier * LIGHT_STEPS) / LIGHT_STEPS;
+
+                    let shadowEffect = Math.min(
+                        0.9,
+                        (depth / LEVEL_HEIGHT) * lightMultiplier + this.darkness
+                    );
+                    this.context.fillStyle = `rgba(0,0,0, ${shadowEffect})`;
                     this.context.fillRect(X, Y, BLOCK_SIZE, BLOCK_SIZE);
 
                     if (obj == BLOCK_INTS.platform) {
