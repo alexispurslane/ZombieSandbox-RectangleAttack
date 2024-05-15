@@ -29,9 +29,9 @@ export default {
         this.actions.sort(function (a, b) {
             return a.requiredKills - b.requiredKills;
         });
-        this.kills = 0;
-        this.action = null;
-        this.actionObject = null;
+        this.kills = 400; // FIXME: change back
+        this.action = 0;
+        this.actionObject = this.actions[this.action];
         this.shoot = ShotHandler.create.bind(ShotHandler);
         this.halfWidth = game.canvas.width / 2;
         this.halfHeight = game.canvas.height / 2;
@@ -42,14 +42,12 @@ export default {
         this.reload = 0;
         this.canJump = 0;
         this.inWater = false;
+        this.touchingWater = false;
         this.spaceDown = false;
         this.blockDifficulty = {};
         let bi = Object.values(BLOCK_INTS);
         bi.forEach((k, i) => (this.blockDifficulty[k] = (bi.length - i) * 5));
         this.hp = this.startHp;
-        this.kills = 0;
-        this.action = 0;
-        this.actionObject = this.actions[this.action];
     },
 
     enterFrame() {
@@ -58,6 +56,12 @@ export default {
             if (this.hp > this.startHp) {
                 this.hp = this.startHp;
             }
+        } else {
+            AudioHandler.stopLoop('outofbreath');
+        }
+
+        if (this.hp < this.startHp / 2) {
+            AudioHandler.playLoop('outofbreath');
         }
 
         if (this.inWater) {
@@ -72,10 +76,6 @@ export default {
 
         if (ControlHandler.mouseLeft) {
             this.mouseHeldActions();
-        }
-
-        if (this.inWater) {
-            AudioHandler.playThrough('bubbles');
         }
     },
 
@@ -123,13 +123,12 @@ export default {
             ((newY + height * 0.5) / BLOCK_SIZE) | 0,
             LEVEL_HEIGHT - 1
         );
+        let previouslyTouchingWater = this.touchingWater;
         let previouslyInWater = this.inWater;
         this.inWater = true;
+        this.touchingWater = false;
         for (let i = startX; i <= endX; i++) {
             for (let j = startY; j <= endY; j++) {
-                if (GridHandler.list[i][j] !== BLOCK_INTS.water) {
-                    this.inWater = this.inWater && false;
-                }
                 if (
                     GridHandler.list[i][j] !== false &&
                     GridHandler.list[i][j] != BLOCK_INTS.cloud &&
@@ -137,10 +136,8 @@ export default {
                 ) {
                     collide = true;
                     if (GridHandler.list[i][j] == BLOCK_INTS.water) {
-                        if (!previouslyInWater) {
-                            AudioHandler.playSound('watersplash');
-                        }
                         this.inWater = this.inWater && true;
+                        this.touchingWater = true;
                         this.canJump--;
                     } else {
                         if (newY < j * BLOCK_SIZE) {
@@ -154,7 +151,10 @@ export default {
                         }
                         this.vY = 0;
                     }
+                } else {
+                    this.inWater = false;
                 }
+
                 if (
                     GridHandler.list[i][j] == BLOCK_INTS.leaves &&
                     this.vY > 0 &&
@@ -171,6 +171,15 @@ export default {
                     }
                 }
             }
+        }
+
+        if (!previouslyTouchingWater && this.touchingWater) {
+            AudioHandler.playSound('watersplash');
+        }
+        if (!previouslyInWater && this.inWater) {
+            AudioHandler.playLoop('bubbles');
+        } else if (!this.inWater) {
+            AudioHandler.stopLoop('bubbles');
         }
 
         this.y = newY;
@@ -199,7 +208,6 @@ export default {
                     GridHandler.list[i][j] != BLOCK_INTS.leaves
                 ) {
                     if (GridHandler.list[i][j] == BLOCK_INTS.water) {
-                        this.inWater = true;
                         if (this.vX > speed * 0.5) {
                             this.vX = speed * 0.5;
                         } else if (this.vX < -speed * 0.5) {

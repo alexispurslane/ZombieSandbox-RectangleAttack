@@ -1,3 +1,4 @@
+import AudioHandler from './AudioHandler.js';
 import PlayerHandler from './PlayerHandler.js';
 
 export default {
@@ -49,8 +50,10 @@ export default {
         } else if (e.keyCode == 27) {
             if (this.game.state == 'game') {
                 this.game.state = 'paused';
+                AudioHandler.pauseAll();
             } else if (this.game.state == 'paused') {
                 this.game.state = 'game';
+                AudioHandler.resumeAll();
             }
         } else if (
             (e.keyCode >= 48 || e.keyCode <= 57) &&

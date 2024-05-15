@@ -16,6 +16,24 @@ import {
     fontFamily,
 } from './constants.js';
 import { BLOCK_INTS, BLOCK_COLORS, isShadowProductingBlock } from './blocks.js';
+import AudioHandler from './AudioHandler.js';
+
+const m = 0x5f375a86,
+    // Creating the buffer and view outside the function
+    // for performance, but this is not thread safe like so:
+    buffer = new ArrayBuffer(4),
+    view = new DataView(buffer);
+function fisr(n) {
+    var f,
+        n2 = n * 0.5,
+        th = 1.5;
+    view.setFloat32(0, n);
+    view.setUint32(0, m - (view.getUint32(0) >> 1));
+    f = view.getFloat32(0);
+    f *= th - n2 * f * f;
+    f *= th - n2 * f * f;
+    return f;
+}
 
 export default {
     init(game) {
@@ -59,11 +77,11 @@ export default {
 
         this.drawBackground(this.game.time * this.timeRatio);
 
+        this.drawZombies();
+
         this.drawMap();
 
         this.drawPlayer();
-
-        this.drawZombies();
 
         this.drawShots();
 
@@ -73,16 +91,6 @@ export default {
 
         // Draws water, clouds, and shadows, which need to draw over the above things.
         this.drawMapOverDraw();
-
-        // Darken things if you're very deep
-        let depth = Math.min(
-            Math.cos(this.game.time * this.timeRatio) + 0.3,
-            0.5
-        );
-        if (depth > 0) {
-            this.context.fillStyle = 'rgba(0,0,0,' + depth + ')';
-            this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        }
 
         this.drawUI();
     },
@@ -179,21 +187,22 @@ export default {
             let light = this.lights[i];
 
             for (
-                let i = Math.ceil(light.x - LIGHT_RADIUS / 2 - 3);
-                i < Math.ceil(light.x + LIGHT_RADIUS / 2 + 3);
+                let i = (light.x - LIGHT_RADIUS / 2 - 3) | 0;
+                (i < light.x + LIGHT_RADIUS / 2 + 3) | 0;
                 i++
             ) {
                 for (
-                    let j = Math.ceil(light.y - LIGHT_RADIUS / 2 - 3);
-                    j < Math.ceil(light.y + LIGHT_RADIUS / 2 + 3);
+                    let j = (light.y - LIGHT_RADIUS / 2 - 3) | 0;
+                    (j < light.y + LIGHT_RADIUS / 2 + 3) | 0;
                     j++
                 ) {
-                    let dist =
-                        Math.sqrt(
-                            Math.pow(light.x - i, 2) + Math.pow(light.y - j, 2)
-                        ) | 0;
-                    if (dist < LIGHT_RADIUS) {
-                        this.castedLight[i][j] -= 1.0 - dist / LIGHT_RADIUS;
+                    let invDist = fisr(
+                        Math.pow((light.x - i) | 0, 2) +
+                            Math.pow((light.y - j) | 0, 2)
+                    );
+                    if (LIGHT_RADIUS * invDist >= 1) {
+                        this.castedLight[i][j] -=
+                            1.0 - 1.0 / (LIGHT_RADIUS * invDist);
                     }
                 }
             }
@@ -205,7 +214,7 @@ export default {
                 let block = GridHandler.list[i][j];
 
                 // Draw block
-                if (j > this.startY) {
+                if (j >= this.startY) {
                     let X = Math.round(i * BLOCK_SIZE + this.offsetX);
                     let Y = Math.round(j * BLOCK_SIZE + this.offsetY);
                     if (
@@ -251,8 +260,9 @@ export default {
                         }
                     }
 
+                    let moonRatio = Math.cos(this.game.time * this.timeRatio);
                     // Draw shadow
-                    if (isShadowProductingBlock(block)) {
+                    if (isShadowProductingBlock(block) || moonRatio > 0) {
                         // Light multiplier initially determined by how deep we are
                         // if we're below the horizon
                         let lightMultiplier = Math.max(
@@ -260,35 +270,12 @@ export default {
                             this.castedLight[i][j]
                         );
 
-                        // Or the player's inherent light (but only below ground)
-                        if (j > HORIZON + 3) {
-                            let distToPlayer =
-                                Math.sqrt(
-                                    Math.pow(
-                                        PlayerHandler.x / BLOCK_SIZE - i,
-                                        2
-                                    ) +
-                                        Math.pow(
-                                            PlayerHandler.y / BLOCK_SIZE - j,
-                                            2
-                                        )
-                                ) | 0;
-                            if (distToPlayer < 10) {
-                                lightMultiplier = Math.max(
-                                    0,
-                                    lightMultiplier -
-                                        0.8 * (1.0 - distToPlayer / 10)
-                                );
-                            }
-                        }
-
-                        lightMultiplier =
-                            Math.round(lightMultiplier * LIGHT_STEPS) /
-                            LIGHT_STEPS;
-
                         let shadowEffect = Math.min(
                             0.9,
-                            1.1 * (depth / LEVEL_HEIGHT) * lightMultiplier +
+                            1.1 *
+                                (depth / LEVEL_HEIGHT +
+                                    Math.max(0, moonRatio)) *
+                                lightMultiplier +
                                 this.darkness
                         );
                         this.context.fillStyle = `rgba(0,0,0, ${shadowEffect})`;

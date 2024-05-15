@@ -20,6 +20,8 @@ const Game = {
 
     canvas: document.getElementById('canvas'),
     context: document.getElementById('canvas').getContext('2d'),
+    shadowcanvas: document.getElementById('shadowcanvas'),
+    shadowcontext: document.getElementById('shadowcanvas').getContext('2d'),
 
     blockCombinations: {
         //stone,wood,dirt
@@ -48,7 +50,7 @@ const Game = {
         this.timeIncrement = 0;
         this.handlers.forEach((h) => h.init(this));
 
-        this.time = this.dayLength * 0.37;
+        this.time = this.dayLength;
 
         clearInterval(this.updateloop);
         this.updateloop = setInterval(this.enterFrame.bind(this), 1000 / 60);
@@ -100,8 +102,10 @@ window.onload = function () {
         desiredWidth = desiredHeight * (16 / 10);
     }
 
-    document.querySelector('#canvas').width = Math.min(1600, desiredWidth);
-    document.querySelector('#canvas').height = Math.min(1000, desiredHeight);
+    Game.canvas.width = Math.min(1600, desiredWidth);
+    Game.canvas.height = Math.min(1000, desiredHeight);
+    Game.shadowcanvas.width = Math.min(1600, desiredWidth);
+    Game.shadowcanvas.height = Math.min(1000, desiredHeight);
 
     window.addEventListener('keydown', ControlHandler.kdelistener);
     window.addEventListener('keyup', ControlHandler.kuelistener);
